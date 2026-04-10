@@ -9,6 +9,10 @@ set ( sfccorrected_files
     EvalSurfacePressure.cc
     EvalSurfaceTemperature.h
     EvalSurfaceTemperature.cc
+    EvalSurfaceHumidity.h
+    EvalSurfaceHumidity.cc
+    EvalSurfaceWind.h
+    EvalSurfaceWind.cc
     ObsSfcCorrected.h
     ObsSfcCorrected.cc
     ObsSfcCorrectedParameters.h
