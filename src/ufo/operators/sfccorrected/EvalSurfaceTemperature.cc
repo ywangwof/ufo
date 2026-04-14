@@ -24,7 +24,7 @@ namespace ufo {
 namespace {
 SurfaceOperatorMaker<airTemperatureAt2M_WRFDA> makerT2M_WRFDA_("airTemperatureAt2M_WRFDA");
 SurfaceOperatorMaker<airTemperatureAt2M_UKMO> makerT2M_UKMO_("airTemperatureAt2M_UKMO");
-SurfaceOperatorMaker<airTemperatureAt2M_GSL> makerT2M_GSL_("airTemperatureAt2M_GSL");
+SurfaceOperatorMaker<airTemperature_GSL> makerT2M_GSL_("airTemperature_GSL");
 }  // namespace
 
 // ----------------------------------------
@@ -235,7 +235,7 @@ void airTemperatureAt2M_UKMO::AD() const {
 // Temperature operator using GSL method
 // ----------------------------------------
 
-airTemperatureAt2M_GSL::airTemperatureAt2M_GSL(const std::string & name,
+airTemperature_GSL::airTemperature_GSL(const std::string & name,
                                                const Parameters_ & params)
   : SurfaceOperatorBase(name, params)
 {
@@ -247,10 +247,10 @@ airTemperatureAt2M_GSL::airTemperatureAt2M_GSL(const std::string & name,
   requiredVars_ += vars;
 }
 
-void airTemperatureAt2M_GSL::simobs(const ufo::GeoVaLs & gv,
+void airTemperature_GSL::simobs(const ufo::GeoVaLs & gv,
                                     const ioda::ObsSpace & obsdb,
                                     std::vector<float> & hofx) const {
-  oops::Log::trace() << "airTemperatureAt2M_GSL::simobs starting" << std::endl;
+  oops::Log::trace() << "airTemperature_GSL::simobs starting" << std::endl;
   // Setup parameters used throughout
   const size_t nobs = obsdb.nlocs();
   const float missing = util::missingValue<float>();
@@ -296,7 +296,7 @@ void airTemperatureAt2M_GSL::simobs(const ufo::GeoVaLs & gv,
       int toplayer_level_index;
       const int local_highest_level = gsl_params.temperatureLocalLapseRateLevel.value();
       if (surface_level_index <= local_highest_level) {
-          throw eckit::AssertionFailed("airTemperatureAt2M_GSL::simobs "
+          throw eckit::AssertionFailed("airTemperature_GSL::simobs "
                                        "local_highest_level must be less than surface_level_index",
                                        Here());
       }
@@ -354,7 +354,7 @@ void airTemperatureAt2M_GSL::simobs(const ufo::GeoVaLs & gv,
 
   // Read other data in
   if (gv.nlevs(oops::Variable{"air_temperature_at_2m"}) <= 0) {
-     throw eckit::UserError("airTemperatureAt2M_GSL::simobs Variable "
+     throw eckit::UserError("airTemperature_GSL::simobs Variable "
                             "air_temperature_at_2m not present in Geoval", Here());
   }
   gv.get(model_T_surface, oops::Variable("air_temperature_at_2m"));
@@ -371,19 +371,19 @@ void airTemperatureAt2M_GSL::simobs(const ufo::GeoVaLs & gv,
     }
   }
 
-  oops::Log::trace() << "airTemperatureAt2M_GSL::simobs complete" << std::endl;
+  oops::Log::trace() << "airTemperature_GSL::simobs complete" << std::endl;
 }
 
-void airTemperatureAt2M_GSL::settraj() const {
-  throw eckit::Exception("airTemperatureAt2M_GSL::settraj not yet implemented");
+void airTemperature_GSL::settraj() const {
+  throw eckit::Exception("airTemperature_GSL::settraj not yet implemented");
 }
 
-void airTemperatureAt2M_GSL::TL() const {
-  throw eckit::Exception("airTemperatureAt2M_GSL::TL not yet implemented");
+void airTemperature_GSL::TL() const {
+  throw eckit::Exception("airTemperature_GSL::TL not yet implemented");
 }
 
-void airTemperatureAt2M_GSL::AD() const {
-  throw eckit::Exception("airTemperatureAt2M_GSL::AD not yet implemented");
+void airTemperature_GSL::AD() const {
+  throw eckit::Exception("airTemperature_GSL::AD not yet implemented");
 }
 
 }  // namespace ufo

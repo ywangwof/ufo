@@ -54,11 +54,11 @@ class airTemperatureAt2M_UKMO : public SurfaceOperatorBase {
   void AD() const override;
 };
 
-class airTemperatureAt2M_GSL : public SurfaceOperatorBase {
+class airTemperature_GSL : public SurfaceOperatorBase {
  public:
-  explicit airTemperatureAt2M_GSL(const std::string &,
+  explicit airTemperature_GSL(const std::string &,
                                   const Parameters_ &);
-  virtual ~airTemperatureAt2M_GSL() {}
+  virtual ~airTemperature_GSL() {}
 
   void simobs(const ufo::GeoVaLs &,
               const ioda::ObsSpace &,
