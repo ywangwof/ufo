@@ -17,10 +17,10 @@
 #include "ioda/ObsVector.h"
 
 #include "oops/base/ObsVariables.h"
-#include "oops/interface/ObsErrorBase.h"
 #include "oops/util/parameters/OptionalParameter.h"
 #include "oops/util/parameters/Parameters.h"
 
+#include "ufo/errors/ObsErrorBase.h"
 #include "ufo/errors/ObsErrorParametersBase.h"
 #include "ufo/errors/ObsErrorReconditioner.h"
 #include "ufo/ObsTraits.h"
@@ -53,14 +53,14 @@ class ObsErrorCrossVarCovParameters : public ObsErrorParametersBase {
 ///          on the diagonal, and C is the correlation matrix. The cross-variable
 ///          R matrices at each location can be reconditioned to reduce their condition
 ///          number, in order to speed up convergence of minimisation.
-class ObsErrorCrossVarCov : public oops::interface::ObsErrorBase<ObsTraits> {
+class ObsErrorCrossVarCov : public ObsErrorBase {
  public:
   /// The type of parameters for this class.
   typedef ObsErrorCrossVarCovParameters Parameters_;
 
   /// Initialize observation errors
-  ObsErrorCrossVarCov(const eckit::Configuration &, ioda::ObsSpace &,
-                      const eckit::mpi::Comm &timeComm);
+  ObsErrorCrossVarCov(const Parameters_ &, ioda::ObsSpace &,
+                      const eckit::mpi::Comm &);
 
   /// Update obs error standard deviations to be equal to \p stddev
   void update(const ioda::ObsVector & stddev) override;
@@ -77,6 +77,15 @@ class ObsErrorCrossVarCov : public oops::interface::ObsErrorBase<ObsTraits> {
   ///       C - correlations
   void inverseMultiply(ioda::ObsVector & y) const override;
 
+  /// Create local R matrix
+  void localize(ioda::ObsVector & locvector) const override;
+
+  /// Return dimension of local R matrix.
+  int localDim() const override;
+
+  /// Multiply a local obs vector \p zz by \f$R^{-1}\f$.
+  Eigen::MatrixXf localInverseMultiply(const Eigen::MatrixXf &zz) const override;
+
   /// Generate \p y as a random perturbation
   void randomize(ioda::ObsVector & y) const override;
 
@@ -92,11 +101,15 @@ class ObsErrorCrossVarCov : public oops::interface::ObsErrorBase<ObsTraits> {
   /// Return inverse of obs error variance
   std::unique_ptr<ioda::ObsVector> getInverseVariance() const override;
 
+  Eigen::VectorXd local_invVarR() const;
+
  private:
   /// Print covariance details (for logging)
   void print(std::ostream &) const override;
   /// Recondition the R matrix - called by update
   void recondition(const ioda::ObsVector & mask);
+  /// Configuration as a Parameters_
+  Parameters_ params_;
   /// Observation error standard deviations
   ioda::ObsVector stddev_;
   /// Variables for which correlations are defined (same as ObsSpace::obsvariables())
@@ -105,8 +118,6 @@ class ObsErrorCrossVarCov : public oops::interface::ObsErrorBase<ObsTraits> {
   Eigen::MatrixXd varcorrelations_;
   /// Create reconditioner
   std::unique_ptr<ObsErrorReconditioner> reconditioner_;
-  /// Configuration as a Parameters_
-  Parameters_ params_;
 };
 
 // -----------------------------------------------------------------------------

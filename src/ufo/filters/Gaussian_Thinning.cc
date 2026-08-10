@@ -118,7 +118,8 @@ void Gaussian_Thinning::applyFilter(const std::vector<bool> & apply,
           priorityVariable.group(), priorityVariable.variable());
   }
   if (options_.selectMedian) {
-    ASSERT(filtervars.size() == 1);  // only works on one variable at a time
+    ASSERT_MSG(filtervars.size() == 1,
+      "filtervars must contain only one variable to calculate the median.");
     const size_t filterVarIndex = 0;
     std::vector<float> obs = obsAccessor.getFloatVariableFromObsSpace("ObsValue",
                               filtervars.variable(filterVarIndex).variable());
@@ -128,7 +129,8 @@ void Gaussian_Thinning::applyFilter(const std::vector<bool> & apply,
     isThinned = identifyThinnedObservationsMedian(
                               validObsIds, obsAccessor, splitter, obs, options_.minNumObsPerBin);
   } else if (options_.selectMean) {
-    ASSERT(filtervars.size() == 1);  // only works on one variable at a time
+    ASSERT_MSG(filtervars.size() == 1,
+      "filtervars must contain only one variable to calculate the mean.");
     const size_t filterVarIndex = 0;
     const std::string varname = filtervars.variable(filterVarIndex).variable();
     // Gather obs from all MPI ranks
@@ -357,11 +359,11 @@ boost::optional<SpatialBinSelector> Gaussian_Thinning::makeSpatialBinSelector(
   SpatialBinCountRoundingMode roundingMode = roundHorizontalBinCountToNearest ?
         SpatialBinCountRoundingMode::NEAREST : SpatialBinCountRoundingMode::DOWN;
 
-  const float earthRadius = Constants::mean_earth_rad;  // km
+  const float earthRadius = static_cast<float>(Constants::mean_earth_rad_m / 1000.0);  // km
   const float meridianLength = M_PI * earthRadius;
   if (defineMeridian20000km)
     // Distance horizontalMesh is defined with respect to a meridian of exactly 20000.0 km;
-    // scale horizontalMesh to be consistent with meridian defined using Constants::mean_earth_rad
+    // scale horizontalMesh to be consistent with meridian defined using mean_earth_rad_km
     horizontalMesh *= meridianLength/20000.0;
   const float tentativeNumLatBins = meridianLength / horizontalMesh;
   const int numLatBins = SpatialBinSelector::roundNumBins(tentativeNumLatBins, roundingMode);

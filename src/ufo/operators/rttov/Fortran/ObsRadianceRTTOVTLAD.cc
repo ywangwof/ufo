@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2017-2018 UCAR
+ * (C) Copyright 2026 Met Office
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -57,8 +57,8 @@ void ObsRadianceRTTOVTLAD::setTrajectory(const GeoVaLs & geovals, ObsDiagnostics
 
 // -----------------------------------------------------------------------------
 
-void ObsRadianceRTTOVTLAD::simulateObsTL(const GeoVaLs & geovals, ioda::ObsVector & ovec,
-                                         const QCFlags_t & qc_flags) const {
+void ObsRadianceRTTOVTLAD::simulateObsTL(const GeoVaLs & geovals,
+                                         ioda::ObsVector & ovec) const {
   ufo_radiancerttov_simobs_tl_f90(keyOperRadianceRTTOV_, geovals.toFortran(), obsspace(),
                              ovec.nvars(), ovec.nlocs(), ovec.toFortran());
   oops::Log::trace() << "ObsRadianceRTTOVTLAD::simulateObsTL done" << std::endl;
@@ -66,8 +66,8 @@ void ObsRadianceRTTOVTLAD::simulateObsTL(const GeoVaLs & geovals, ioda::ObsVecto
 
 // -----------------------------------------------------------------------------
 
-void ObsRadianceRTTOVTLAD::simulateObsAD(GeoVaLs & geovals, const ioda::ObsVector & ovec,
-                                         const QCFlags_t & qc_flags) const {
+void ObsRadianceRTTOVTLAD::simulateObsAD(GeoVaLs & geovals,
+                                         const ioda::ObsVector & ovec) const {
   ufo_radiancerttov_simobs_ad_f90(keyOperRadianceRTTOV_, geovals.toFortran(), obsspace(),
                              ovec.nvars(), ovec.nlocs(), ovec.toFortran());
   oops::Log::trace() << "ObsRadianceRTTOVTLAD::simulateObsAD done" << std::endl;

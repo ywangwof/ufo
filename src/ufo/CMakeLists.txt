@@ -40,10 +40,14 @@ add_subdirectory( operators/product )
 add_subdirectory( operators/radardopplerwind )
 add_subdirectory( operators/radarradialvelocity )
 add_subdirectory( operators/radarreflectivity)
-add_subdirectory( operators/goescloudwaterpath)
-if( rttov_FOUND )
-    add_subdirectory( operators/rttov/Fortran/v12 )
-    add_subdirectory( operators/rttov/CPP/v12 )
+if ( rttov_FOUND )
+    if(DEFINED rttov_VERSION_MAJOR AND rttov_VERSION_MAJOR EQUAL 14)
+        add_subdirectory( operators/rttov/Fortran/v14 )
+        add_subdirectory( operators/rttov/CPP/v14 )
+    else()
+        add_subdirectory( operators/rttov/Fortran/v12 )
+        add_subdirectory( operators/rttov/CPP/v12 )
+    endif()
 endif()
 add_subdirectory( operators/sattcwv )
 add_subdirectory( operators/scatwind )
@@ -61,11 +65,12 @@ list( APPEND ufo_src_files
     Fortran.h
     AnalyticInit.cc
     AnalyticInit.h
+    AnalyticInitBase.cc
+    AnalyticInitBase.h
     GeoVaLs.cc
     GeoVaLs.h
     GeoVaLs.interface.F90
     GeoVaLs.interface.h
-    instantiateObsErrorFactory.h
     instantiateObsFilterFactory.h
     instantiateObsLocFactory.h
     LinearObsBiasOperator.cc

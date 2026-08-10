@@ -22,22 +22,25 @@ namespace ufo {
 
 // -----------------------------------------------------------------------------
 
-ObsErrorCrossVarCov::ObsErrorCrossVarCov(const eckit::Configuration & crossVarConf,
+static ObsErrorMaker<ObsErrorCrossVarCov> makerCrossVarCov_("cross variable covariances");
+
+// -----------------------------------------------------------------------------
+
+ObsErrorCrossVarCov::ObsErrorCrossVarCov(const Parameters_ & params,
                                          ioda::ObsSpace & obspace,
                                          const eckit::mpi::Comm &timeComm)
-  : ObsErrorBase(timeComm),
+  : ObsErrorBase(timeComm), params_(params),
     stddev_(obspace, "ObsError"), vars_(obspace.assimvariables()),
     varcorrelations_(Eigen::MatrixXd::Identity(stddev_.nvars(), stddev_.nvars())),
     reconditioner_(nullptr)
 {
   // deserialize configuration into ObsErrorCrossVarCovParameters
-  params_.validateAndDeserialize(crossVarConf);
   // Create reconditioner
   reconditioner_.reset(new ObsErrorReconditioner(params_.reconditioning.value()));
   // Open and read error correlations from the hdf5 file
   ioda::Engines::BackendNames  backendName = ioda::Engines::BackendNames::Hdf5File;
   ioda::Engines::BackendCreationParameters backendParams;
-  backendParams.fileName = params_.inputFile;
+  backendParams.fileName = params.inputFile;
   backendParams.action   = ioda::Engines::BackendFileActions::Open;
   backendParams.openMode = ioda::Engines::BackendOpenModes::Read_Only;
 
@@ -67,7 +70,7 @@ ObsErrorCrossVarCov::ObsErrorCrossVarCov(const eckit::Configuration & crossVarCo
     allvarcorrelations = stddevinv * allvarcovariances * stddevinv;
   } else {
     oops::Log::error() << "One of obserror_correlations or obserror_covariances has to "
-                       << "be specified in the input file " << params_.inputFile.value()
+                       << "be specified in the input file " << params.inputFile.value()
                        << std::endl;
     throw eckit::BadParameter("One of obserror_correlations or obserror_covariances has "
                               "to be specified in the input file.");
@@ -87,7 +90,7 @@ ObsErrorCrossVarCov::ObsErrorCrossVarCov(const eckit::Configuration & crossVarCo
       // Print into to the trace log
       oops::Log::trace() << "ObsErrorCrossVarCov: Obs error correlations not provided for "
                          << "variable " << vars_[ivar] << " in "
-                         << params_.inputFile.value() << ", correlations set to zero.\n";
+                         << params.inputFile.value() << ", correlations set to zero.\n";
     } else {
       for (size_t jvar = 0; jvar < var_idx.size(); ++jvar) {
         if (var_idx[jvar] >= 0) {
@@ -101,7 +104,7 @@ ObsErrorCrossVarCov::ObsErrorCrossVarCov(const eckit::Configuration & crossVarCo
   if (count_noErrCorrect > 0) {
     oops::Log::warning() << "ObsErrorCrossVarCov: Obs error correlations not provided for "
                          << count_noErrCorrect << " of " << count_ttl_vars
-                         << " channels/variables in file: " << params_.inputFile.value()
+                         << " channels/variables in file: " << params.inputFile.value()
                          << ". To see which channels, turn on OOPS_TRACE\n" << std::endl;
   }
 }
@@ -301,6 +304,27 @@ void ObsErrorCrossVarCov::inverseMultiply(ioda::ObsVector & dy) const {
 
   // D^{-1/2} * C^{-1} * D^{-1/2} * dy
   dy /= stddev_;
+}
+
+// -----------------------------------------------------------------------------
+
+void ObsErrorCrossVarCov::localize(ioda::ObsVector & locvector) const {
+  throw eckit::BadParameter("Trying to localize a correlated R matrix, this is "
+                            "not yet implemented.");
+}
+
+int ObsErrorCrossVarCov::localDim() const {
+  throw eckit::BadParameter("Trying to localize a correlated R matrix, this is "
+      "not yet implemented.");
+}
+
+Eigen::MatrixXf ObsErrorCrossVarCov::localInverseMultiply(const Eigen::MatrixXf & zz) const {
+  throw eckit::BadParameter("Localisation not implemented for correlated R matrices");
+}
+
+Eigen::VectorXd ObsErrorCrossVarCov::local_invVarR() const {
+  throw eckit::BadParameter("Local inverse variance not implemented for "
+                            "correlated R matrices");
 }
 
 // -----------------------------------------------------------------------------

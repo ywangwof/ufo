@@ -126,7 +126,6 @@ list( APPEND ufo_test_input
   testinput/geovals.yaml
   testinput/locations.yaml
   testinput/operatorutils.yaml
-  testinput/parameters_older_eckit.yaml
   testinput/parameters.yaml
   testinput/primitive_variables.yaml
   testinput/recordhandler.yaml
@@ -154,6 +153,10 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput/unit_tests)
 CREATE_SYMLINK( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${ufo_test_input} )
 
+# Create Data directory for test output files
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testoutput/)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testoutput/unit_tests)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testoutput/unit_tests/errors)
 
 # Add files to cmake resources
 ecbuild_add_resources( TARGET ufo_test_scripts
@@ -167,10 +170,12 @@ list( APPEND ufo_test_ref
   testref/unit_tests/filters/print_filter_data.ref
   testref/unit_tests/filters/print_filter_data_MPI2_rank0.ref
   testref/unit_tests/filters/print_filter_data_time_window_selection.ref
+  testref/unit_tests/errors/diracDiffusion.ref
 )
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testref)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testref/unit_tests)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testref/unit_tests/errors)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testref/unit_tests/filters)
 CREATE_SYMLINK( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${ufo_test_ref} )
 
@@ -190,6 +195,11 @@ ecbuild_add_executable( TARGET  test_ObsBias.x
 
 ecbuild_add_executable( TARGET  test_ObsDiagnostics.x
                         SOURCES mains/TestObsDiagnostics.cc
+                        LIBS    ufo
+                       )
+
+ecbuild_add_executable( TARGET  test_ObsError.x
+                        SOURCES mains/TestObsErrorCovariance.cc
                         LIBS    ufo
                        )
 
@@ -244,28 +254,16 @@ ecbuild_add_executable( TARGET  test_FortranGeoVaLs.x
                        )
 
 ####################################################################
-# Establish test tiering
-
-set( UFO_TEST_TIER 1 CACHE STRING "UFO test tier. Run tests up to and including this tier.")
-
-# Override UFO_TEST_TIER using environment variable
-if( DEFINED ENV{UFO_TEST_TIER} )
-    set( UFO_TEST_TIER $ENV{UFO_TEST_TIER} )
-endif()
-
-message(STATUS "Running ufo tests for tiers up to and including tier " ${UFO_TEST_TIER})
-
-####################################################################
 
 
 # Test piecewise linear interpolation
-ecbuild_add_test( TARGET  test_ufo_piecewise_linear_interpolation
+ecbuild_add_test( TARGET  ufo_piecewise_linear_interpolation
                   SOURCES mains/TestPiecewiseLinearInterpolation.cc
                   ARGS    "testinput/empty.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo)
 
-ecbuild_add_test( TARGET  test_ufo_recursivesplitter
+ecbuild_add_test( TARGET  ufo_recursivesplitter
                   SOURCES mains/TestRecursiveSplitter.cc
                   # This test doesn't need a configuration file, but oops::Run::Run() requires
                   # a path to a configuration file to be passed in the first command-line parameter.
@@ -273,7 +271,7 @@ ecbuild_add_test( TARGET  test_ufo_recursivesplitter
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_dataextractor
+ecbuild_add_test( TARGET  ufo_dataextractor
                   SOURCES mains/TestDataExtractor.cc
                   # This test doesn't need a configuration file, but oops::Run::Run() requires
                   # a path to a configuration file to be passed in the first command-line parameter.
@@ -282,21 +280,21 @@ ecbuild_add_test( TARGET  test_ufo_dataextractor
                   LIBS    ufo )
 
 # Test integral image
-ecbuild_add_test( TARGET  test_ufo_integral_image
+ecbuild_add_test( TARGET  ufo_integral_image
                   SOURCES mains/TestIntegralImage.cc
                   ARGS    "testinput/empty.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo)
 
 # Test geometry calculations
-ecbuild_add_test( TARGET  test_ufo_geometry_calculations
+ecbuild_add_test( TARGET  ufo_geometry_calculations
                   SOURCES mains/TestGeometryCalculations.cc
                   ARGS    "testinput/empty.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo)
 
 # Test nearest_neighbor interpolation
-ecbuild_add_test( TARGET  test_ufo_nearest_neighbor_interpolation
+ecbuild_add_test( TARGET  ufo_nearest_neighbor_interpolation
                   SOURCES mains/TestNearestNeighborInterpolation.cc
                   ARGS    "testinput/empty.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
@@ -304,68 +302,59 @@ ecbuild_add_test( TARGET  test_ufo_nearest_neighbor_interpolation
                   TEST_DEPENDS test_NearestNeighborInterpolation.x)
 
 # Test superob radar template
-ecbuild_add_test( TARGET  test_ufo_superob_radar_template
+ecbuild_add_test( TARGET  ufo_superob_radar_template
                   SOURCES mains/TestSuperObRadarTemplate.cc
                   ARGS    "testinput/empty.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo)
 
 # Test Parameters
-if(eckit_VERSION VERSION_GREATER_EQUAL 1.16)
-  ecbuild_add_test( TARGET  test_ufo_parameters
-                    SOURCES mains/TestParameters.cc
-                    ARGS    "testinput/parameters.yaml"
-                    ENVIRONMENT OOPS_TRAPFPE=1 VALIDATE_PARAMETERS=1
-                    LIBS    ufo )
-else()
-  # Due to changes in eckit 1.16 a different input file is required.
-  ecbuild_add_test( TARGET  test_ufo_parameters
-                    SOURCES mains/TestParameters.cc
-                    ARGS    "testinput/parameters_older_eckit.yaml"
-                    ENVIRONMENT OOPS_TRAPFPE=1 VALIDATE_PARAMETERS=1
-                    LIBS    ufo )
-endif()
+ecbuild_add_test( TARGET  ufo_parameters
+                  SOURCES mains/TestParameters.cc
+                  ARGS    "testinput/parameters.yaml"
+                  ENVIRONMENT OOPS_TRAPFPE=1 VALIDATE_PARAMETERS=1
+                  LIBS    ufo )
 
 # Test operator utils
-ecbuild_add_test( TARGET  test_ufo_operator_utils
+ecbuild_add_test( TARGET  ufo_operator_utils
                   SOURCES mains/TestOperatorUtils.cc
                   ARGS    "testinput/operatorutils.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_variables
+ecbuild_add_test( TARGET  ufo_variables
                   SOURCES mains/TestVariables.cc
                   ARGS    "testinput/variables.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
 # Test the iterator over primitive variables and their values
-ecbuild_add_test( TARGET  test_ufo_primitive_variables
+ecbuild_add_test( TARGET  ufo_primitive_variables
                   SOURCES mains/TestPrimitiveVariables.cc
                   ARGS    "testinput/primitive_variables.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_geovals
+ecbuild_add_test( TARGET  ufo_geovals
                   SOURCES mains/TestGeoVaLs.cc
                   ARGS    "testinput/geovals.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_geovals_mpi
+ecbuild_add_test( TARGET  ufo_geovals_mpi
                   SOURCES mains/TestGeoVaLs.cc
                   ARGS    "testinput/geovals.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   MPI     4
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_geovals_spec
+ecbuild_add_test( TARGET  ufo_geovals_spec
                   SOURCES mains/TestGeoVaLsSpec.cc
                   ARGS    "testinput/geovals_spec.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_sampled_locations
+ecbuild_add_test( TARGET  ufo_sampled_locations
                   SOURCES mains/TestSampledLocations.cc
                           ufo/SampledLocations.h
                           ufo/sampled_locations_test.F90
@@ -373,153 +362,153 @@ ecbuild_add_test( TARGET  test_ufo_sampled_locations
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
-ecbuild_add_test( TARGET  test_ufo_recordhandler
+ecbuild_add_test( TARGET  ufo_recordhandler
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_RecordHandler.x
                   ARGS    "testinput/recordhandler.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_RecordHandler.x )
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_with_mismatched_nvars
+ecbuild_add_test( TARGET  ufo_geovals_setup_with_mismatched_nvars
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_with_mismatched_nvars.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_with_mismatched_nvars
+set_tests_properties(ufo_geovals_setup_with_mismatched_nvars
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup: mismatch in the number of variables.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_with_mismatched_nreduced_vars
+ecbuild_add_test( TARGET  ufo_geovals_setup_with_mismatched_nreduced_vars
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_with_mismatched_nreduced_vars.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_with_mismatched_nreduced_vars
+set_tests_properties(ufo_geovals_setup_with_mismatched_nreduced_vars
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup: mismatch in the number of reduced variables.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_with_sampling_method_set_to_0
+ecbuild_add_test( TARGET  ufo_geovals_setup_with_sampling_method_set_to_0
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_with_sampling_method_set_to_0.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_with_sampling_method_set_to_0
+set_tests_properties(ufo_geovals_setup_with_sampling_method_set_to_0
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup: sampling method +0 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_with_sampling_method_set_to_3
+ecbuild_add_test( TARGET  ufo_geovals_setup_with_sampling_method_set_to_3
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_with_sampling_method_set_to_3.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_with_sampling_method_set_to_3
+set_tests_properties(ufo_geovals_setup_with_sampling_method_set_to_3
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup: sampling method +3 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_with_method_mislabelled_as_trivial
+ecbuild_add_test( TARGET  ufo_geovals_setup_with_method_mislabelled_as_trivial
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_with_method_mislabelled_as_trivial.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_with_method_mislabelled_as_trivial
+set_tests_properties(ufo_geovals_setup_with_method_mislabelled_as_trivial
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup: trivial sampling methods must sample each location exactly once.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_partial_setup_with_mismatched_nvars
+ecbuild_add_test( TARGET  ufo_geovals_partial_setup_with_mismatched_nvars
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_partial_setup_with_mismatched_nvars.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_partial_setup_with_mismatched_nvars
+set_tests_properties(ufo_geovals_partial_setup_with_mismatched_nvars
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_partial_setup: mismatch in the number of variables.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_partial_setup_with_sampling_method_set_to_0
+ecbuild_add_test( TARGET  ufo_geovals_partial_setup_with_sampling_method_set_to_0
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_partial_setup_with_sampling_method_set_to_0.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_partial_setup_with_sampling_method_set_to_0
+set_tests_properties(ufo_geovals_partial_setup_with_sampling_method_set_to_0
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_partial_setup: sampling method +0 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_partial_setup_with_sampling_method_set_to_3
+ecbuild_add_test( TARGET  ufo_geovals_partial_setup_with_sampling_method_set_to_3
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_partial_setup_with_sampling_method_set_to_3.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_partial_setup_with_sampling_method_set_to_3
+set_tests_properties(ufo_geovals_partial_setup_with_sampling_method_set_to_3
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_partial_setup: sampling method +3 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_sampling_method_0
+ecbuild_add_test( TARGET  ufo_geovals_setup_sampling_method_0
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_sampling_method_0.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_sampling_method_0
+set_tests_properties(ufo_geovals_setup_sampling_method_0
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup_sampling_method: sampling method +0 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_sampling_method_3
+ecbuild_add_test( TARGET  ufo_geovals_setup_sampling_method_3
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_sampling_method_3.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_sampling_method_3
+set_tests_properties(ufo_geovals_setup_sampling_method_3
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup_sampling_method: sampling method +3 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_sampling_method_with_mismatched_nlocs
+ecbuild_add_test( TARGET  ufo_geovals_setup_sampling_method_with_mismatched_nlocs
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_sampling_method_with_mismatched_nlocs.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_sampling_method_with_mismatched_nlocs
+set_tests_properties(ufo_geovals_setup_sampling_method_with_mismatched_nlocs
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup_sampling_method: mismatch in nlocs.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_sampling_method_mislabelled_as_trivial
+ecbuild_add_test( TARGET  ufo_geovals_setup_sampling_method_mislabelled_as_trivial
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_sampling_method_mislabelled_as_trivial.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_sampling_method_mislabelled_as_trivial
+set_tests_properties(ufo_geovals_setup_sampling_method_mislabelled_as_trivial
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup_sampling_method: the method should be trivial but is not.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_trivial_sampling_method_0
+ecbuild_add_test( TARGET  ufo_geovals_setup_trivial_sampling_method_0
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_trivial_sampling_method_0.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_trivial_sampling_method_0
+set_tests_properties(ufo_geovals_setup_trivial_sampling_method_0
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup_trivial_sampling_method: sampling method +0 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_setup_trivial_sampling_method_3
+ecbuild_add_test( TARGET  ufo_geovals_setup_trivial_sampling_method_3
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_setup_trivial_sampling_method_3.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_setup_trivial_sampling_method_3
+set_tests_properties(ufo_geovals_setup_trivial_sampling_method_3
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_setup_trivial_sampling_method: sampling method +3 +does not exist.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_set_invalid_default_format
+ecbuild_add_test( TARGET  ufo_geovals_set_invalid_default_format
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_set_invalid_default_format.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_set_invalid_default_format
+set_tests_properties(ufo_geovals_set_invalid_default_format
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_set_default_format: format must be either ufo_geoval_sampled or ufo_geoval_reduced.*")
 
-ecbuild_add_test( TARGET  test_ufo_geovals_get_nonexistent_var
+ecbuild_add_test( TARGET  ufo_geovals_get_nonexistent_var
                   COMMAND ${CMAKE_BINARY_DIR}/bin/test_FortranGeoVaLs.x
                   ARGS    "testinput/ufo_geovals_get_nonexistent_var.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   DEPENDS test_FortranGeoVaLs.x )
-set_tests_properties(test_ufo_geovals_get_nonexistent_var
+set_tests_properties(ufo_geovals_get_nonexistent_var
                      PROPERTIES
                      PASS_REGULAR_EXPRESSION ".*ufo_geovals_get_var d doesnt exist.*")
 
@@ -634,6 +623,8 @@ SpcCoeff/Little_Endian/abi_g17.SpcCoeff.bin
 TauCoeff/ODPS/Little_Endian/abi_g17.TauCoeff.bin
 SpcCoeff/Little_Endian/abi_g18.SpcCoeff.bin
 TauCoeff/ODPS/Little_Endian/abi_g18.TauCoeff.bin
+SpcCoeff/Little_Endian/abi_g19.SpcCoeff.bin
+TauCoeff/ODPS/Little_Endian/abi_g19.TauCoeff.bin
 SpcCoeff/Little_Endian/abi_gr.SpcCoeff.bin
 TauCoeff/ODPS/Little_Endian/abi_gr.TauCoeff.bin
 SpcCoeff/Little_Endian/v.abi_g16.SpcCoeff.bin
@@ -642,6 +633,8 @@ SpcCoeff/Little_Endian/v.abi_g17.SpcCoeff.bin
 TauCoeff/ODAS/Little_Endian/v.abi_g17.TauCoeff.bin
 SpcCoeff/Little_Endian/v.abi_g18.SpcCoeff.bin
 TauCoeff/ODAS/Little_Endian/v.abi_g18.TauCoeff.bin
+SpcCoeff/Little_Endian/v.abi_g19.SpcCoeff.bin
+TauCoeff/ODAS/Little_Endian/v.abi_g19.TauCoeff.bin
 SpcCoeff/Little_Endian/ahi_himawari8.SpcCoeff.bin
 TauCoeff/ODPS/Little_Endian/ahi_himawari8.TauCoeff.bin
 SpcCoeff/Little_Endian/radiometer_smap.SpcCoeff.bin
@@ -689,6 +682,17 @@ endif()
 # Files for RTTOV tests
 #####################################################################
 if( ${rttov_FOUND} )
+  # Determine file extension based on RTTOV version
+  if(rttov_VERSION VERSION_GREATER_EQUAL 14.0)
+    set(RTTOV_COEF_EXT "nc")
+    set(RTTOV_VERSION_SUFFIX "_rttov14")
+    set(RTTOV_CAMEL_VERSION "3")
+  else()
+    set(RTTOV_COEF_EXT "H5")
+    set(RTTOV_VERSION_SUFFIX "_rttov12")
+    set(RTTOV_CAMEL_VERSION "2")
+  endif()
+  
   list( APPEND rttov_coef_data
     rttov7pred54L/rtcoef_dmsp_17_ssmis.dat
     rttov7pred54L/rtcoef_gcom-w_1_amsr2.dat
@@ -703,19 +707,19 @@ if( ${rttov_FOUND} )
     rttov7pred54L/rtcoef_noaa_19_amsua.dat
     rttov7pred54L/rtcoef_jpss_0_atms.dat
     rttov7pred54L/rtcoef_noaa_20_atms.dat
-    rttov7pred54L/rtcoef_mtg_2_irs.H5
+    rttov7pred101L/rtcoef_mtg_2_irs.${RTTOV_COEF_EXT}
     )
   list( APPEND rttov_emis_atlas_data
-    CAMEL_coef_climatology_01Month_V002.H5
-    CAMEL_coef_climatology_06Month_V002.H5
-    pchsr_v10.2.H5
-    pchsr_v10.3.H5
-    pchsr_v11.3.H5
-    pchsr_v12.2.H5
-    pchsr_v12.3.H5
-    pchsr_v8.2.H5
-    pchsr_v8.3.H5
-    pchsr_v9.3.H5
+    CAMEL_coef_climatology_01Month_V00${RTTOV_CAMEL_VERSION}.${RTTOV_COEF_EXT}
+    CAMEL_coef_climatology_06Month_V00${RTTOV_CAMEL_VERSION}.${RTTOV_COEF_EXT}
+    pchsr_v10.2.${RTTOV_COEF_EXT}
+    pchsr_v10.3.${RTTOV_COEF_EXT}
+    pchsr_v11.3.${RTTOV_COEF_EXT}
+    pchsr_v12.2.${RTTOV_COEF_EXT}
+    pchsr_v12.3.${RTTOV_COEF_EXT}
+    pchsr_v8.2.${RTTOV_COEF_EXT}
+    pchsr_v8.3.${RTTOV_COEF_EXT}
+    pchsr_v9.3.${RTTOV_COEF_EXT}
     )
 
     
@@ -723,9 +727,9 @@ if( ${rttov_FOUND} )
   if(DEFINED ENV{RTTOV_LOCAL_COEF_DIR} AND EXISTS $ENV{RTTOV_LOCAL_COEF_DIR})
     set(RTTOV_COEF_DIR "$ENV{RTTOV_LOCAL_COEF_DIR}")
   elseif(DEFINED rttov_SOURCE_DIR AND EXISTS "${rttov_SOURCE_DIR}")
-    set(RTTOV_COEF_DIR "${rttov_SOURCE_DIR}/rtcoef_rttov12")
+    set(RTTOV_COEF_DIR "${rttov_SOURCE_DIR}/rtcoef${RTTOV_VERSION_SUFFIX}")
   elseif(DEFINED rttov_BASE_DIR AND EXISTS "${rttov_BASE_DIR}/etc")
-    set(RTTOV_COEF_DIR "${rttov_BASE_DIR}/etc/rtcoef_rttov12")
+    set(RTTOV_COEF_DIR "${rttov_BASE_DIR}/etc/rtcoef${RTTOV_VERSION_SUFFIX}")
   endif()
   message(STATUS "RTTOV coefficient directory: ${RTTOV_COEF_DIR}")
 
@@ -738,31 +742,46 @@ if( ${rttov_FOUND} )
   endif()
   message(STATUS "RTTOV emissivity atlas directory: ${RTTOV_EMIS_ATLAS_DIR}")
   
-  # Extract mietable to binDir/Data
-  if(EXISTS "${RTTOV_COEF_DIR}/mietable/mietable_metop_amsuamhs.tar.zst")
-    set(archive "${RTTOV_COEF_DIR}/mietable/mietable_metop_amsuamhs.tar.zst")
-    set(out_dir "${CMAKE_CURRENT_BINARY_DIR}/Data/")
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
-      file(ARCHIVE_EXTRACT INPUT ${archive} DESTINATION ${out_dir} VERBOSE)
-    else()
-      file(MAKE_DIRECTORY ${out_dir})
-      execute_process(
-        COMMAND ${CMAKE_COMMAND} -E tar xf ${archive}
-        WORKING_DIRECTORY {out_dir}
-        RESULT_VARIABLE ret
-        )
-      if(NOT ret EQUAL 0)
-        message(FATAL_ERROR "extract ${archive} => ${out_dir}    ${ret}")
-      endif()
+  # Handle mietable (v12) or hydrotable (v14)
+  if(rttov_VERSION VERSION_GREATER_EQUAL 14.0)
+    # RTTOV v14: use NetCDF hydrotable file directly
+    if(EXISTS "${RTTOV_COEF_DIR}/hydrotable/rttov_hydrotable_metop_amsuamhs.nc")
+      list(APPEND rttov_coef_data "hydrotable/rttov_hydrotable_metop_amsuamhs.nc")
     endif()
-  elseif(EXISTS "${RTTOV_COEF_DIR}/mietable/mietable_metop_amsuamhs.bin")
-    list(APPEND rttov_coef_data "mietable/mietable_metop_amsuamhs.bin")
+  else()
+    # RTTOV v12: extract mietable from tar.zst archive
+    if(EXISTS "${RTTOV_COEF_DIR}/mietable/mietable_metop_amsuamhs.tar.zst")
+      set(archive "${RTTOV_COEF_DIR}/mietable/mietable_metop_amsuamhs.tar.zst")
+      set(out_dir "${CMAKE_CURRENT_BINARY_DIR}/Data/")
+      if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+        file(ARCHIVE_EXTRACT INPUT ${archive} DESTINATION ${out_dir} VERBOSE)
+      else()
+        file(MAKE_DIRECTORY ${out_dir})
+        execute_process(
+          COMMAND ${CMAKE_COMMAND} -E tar xf ${archive}
+          WORKING_DIRECTORY {out_dir}
+          RESULT_VARIABLE ret
+          )
+        if(NOT ret EQUAL 0)
+          message(FATAL_ERROR "extract ${archive} => ${out_dir}    ${ret}")
+        endif()
+      endif()
+    elseif(EXISTS "${RTTOV_COEF_DIR}/mietable/mietable_metop_amsuamhs.bin")
+      list(APPEND rttov_coef_data "mietable/mietable_metop_amsuamhs.bin")
+    endif()
   endif()
     
   # Symlink RTcoef files
   create_symlink_filename( ${RTTOV_COEF_DIR}
                            ${CMAKE_CURRENT_BINARY_DIR}/Data
                            ${rttov_coef_data} )
+
+  # Create symlink for noaa hydrotable pointing to metop hydrotable (v14 only)
+  if(rttov_VERSION VERSION_GREATER_EQUAL 14.0)
+    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/Data/rttov_hydrotable_metop_amsuamhs.nc
+                     ${CMAKE_CURRENT_BINARY_DIR}/Data/rttov_hydrotable_noaa_amsuamhs.nc
+                     SYMBOLIC)
+  endif()
 
   # Symlink Emissivity atlas files
   create_symlink_filename( ${RTTOV_EMIS_ATLAS_DIR}
