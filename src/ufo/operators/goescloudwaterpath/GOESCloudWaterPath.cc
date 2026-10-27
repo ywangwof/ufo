@@ -11,6 +11,7 @@
 #include <cmath>
 #include <ostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "ioda/ObsVector.h"
@@ -36,6 +37,10 @@ static const std::string var_qs   = "snow_water";
 static const std::string var_qg   = "graupel";
 static const std::string var_qh   = "hail";
 
+// ObsDiagnostics for a saturation-check filter (see GOESCloudWaterPath.h)
+static const std::string diag_rh  = "cloud_layer_relative_humidity";
+static const std::string diag_tk  = "cloud_layer_temperature";
+
 // Physical constants from DART 'assimilation_code/modules/utilities/types_mod.f90'
 static constexpr double L_over_Rv = 5418.12;     // L/Rv
 
@@ -60,8 +65,15 @@ GOESCloudWaterPath::GOESCloudWaterPath(const ioda::ObsSpace & odb,
     pressureTop_(params.pressureTop.value()),
     computeLayerTk_(params.computeLayerTk.value()),
     maximumHofx_(params.maximumHofx.value()),
-    reverseColumnOrder_(params.reverseColumnOrder.value())
+    reverseColumnOrder_(params.reverseColumnOrder.value()),
+    saturationCheckInOperator_(params.saturationCheck.value() == "operator")
 {
+  if (params.saturationCheck.value() != "operator" && params.saturationCheck.value() != "filter") {
+    throw eckit::BadParameter(
+      "GOESCloudWaterPath: Unknown saturation check: '" + params.saturationCheck.value() +
+      "'. Must be operator or filter.", Here());
+  }
+
   // Always require pressure levels, temperature, and qv
   requiredVars_ += oops::Variables(std::vector<oops::Variable>{
                    oops::Variable(var_prsi),
@@ -105,7 +117,8 @@ GOESCloudWaterPath::GOESCloudWaterPath(const ioda::ObsSpace & odb,
                      << ", pressureTop=" << pressureTop_
                      << ", layerTk=" << computeLayerTk_
                      << ", maxHofx=" << maximumHofx_
-                     << ", reverseCol=" << reverseColumnOrder_ << std::endl;
+                     << ", reverseCol=" << reverseColumnOrder_
+                     << ", saturationCheck=" << params.saturationCheck.value() << std::endl;
 }
 
 // -----------------------------------------------------------------------------
@@ -116,7 +129,7 @@ GOESCloudWaterPath::~GOESCloudWaterPath() {
 // -----------------------------------------------------------------------------
 void GOESCloudWaterPath::simulateObs(const GeoVaLs & geovals,
                                      ioda::ObsVector & hofx,
-                                     ObsDiagnostics &,
+                                     ObsDiagnostics & ydiags,
                                      const QCFlags_t &) const {
   oops::Log::trace() << "GOESCloudWaterPath::simulateObs start" << std::endl;
 
@@ -128,6 +141,9 @@ void GOESCloudWaterPath::simulateObs(const GeoVaLs & geovals,
 
   const double missing = util::missingValue<double>();
   const double pTop = static_cast<double>(pressureTop_);
+
+  // Layer-mean RH and T for the ObsDiagnostics (missing where hofx is missing before the checks)
+  std::vector<double> layerRHdiag(nlocs, missing), layerTkdiag(nlocs, missing);
 
   // Read satellite cloud base/top pressure from MetaData
   std::vector<float> satcbpVec(nlocs, 0.0), satctpVec(nlocs, 0.0);
@@ -191,10 +207,8 @@ void GOESCloudWaterPath::simulateObs(const GeoVaLs & geovals,
     std::vector<double> qv(nlevs, 0.0), tmpk(nlevs, 0.0);
     geovals.getAtLocation(qv, oops::Variable{var_mixr}, loc);
     if (reverseColumnOrder_) std::reverse(qv.begin(), qv.end());
-    // Convert qv from g/kg to kg/kg for MPAS
-    for (std::size_t k = 0; k < nlevs; ++k) {
-      qv[k] *= 0.001;
-    }
+    // qv GeoVaL (water_vapor_mixing_ratio_wrt_dry_air) is already in kg/kg, the same
+    // units as qsat below, so no conversion here
     geovals.getAtLocation(tmpk, oops::Variable{var_ts}, loc);
     if (reverseColumnOrder_) std::reverse(tmpk.begin(), tmpk.end());
 
@@ -297,8 +311,9 @@ void GOESCloudWaterPath::simulateObs(const GeoVaLs & geovals,
         ++rhCount;
       }
       double layerRH = (rhCount > 0) ? rhSum / static_cast<double>(rhCount) : 0.0;
+      layerRHdiag[loc] = layerRH;
 
-      if (layerRH > rhThreshold) {
+      if (saturationCheckInOperator_ && layerRH > rhThreshold) {
         if ( GOESOBSType_ == "LWP" ) {
           lwp = missing;
 	}
@@ -313,15 +328,18 @@ void GOESCloudWaterPath::simulateObs(const GeoVaLs & geovals,
     }
 
     // ---- Layer-mean temperature check (freezing: LWP -> CWP) ----
-    if (computeLayerTk_ && GOESOBSType_ == "LWP") {
+    double layerTk = 300.0;
+    {
       double tkSum = 0.0;
       std::size_t tkCount = 0;
       for (std::size_t k = mink; k < maxk; ++k) {
         tkSum += tmpk[k];
         ++tkCount;
       }
-      double layerTk = (tkCount > 0) ? tkSum / static_cast<double>(tkCount) : 300.0;
-
+      layerTk = (tkCount > 0) ? tkSum / static_cast<double>(tkCount) : 300.0;
+      layerTkdiag[loc] = layerTk;
+    }
+    if (computeLayerTk_ && GOESOBSType_ == "LWP") {
       if (layerTk < freezingTk) {
         // Below freezing: replace LWP with CWP
         lwp = cwp;
@@ -356,6 +374,14 @@ void GOESCloudWaterPath::simulateObs(const GeoVaLs & geovals,
     }
   }
 
+  // Diagnostics requested by filters (saturation check with `saturation check: filter`)
+  for (const auto & dv : {std::make_pair(diag_rh, &layerRHdiag), std::make_pair(diag_tk, &layerTkdiag)}) {
+    if (ydiags.has(dv.first)) {
+      ydiags.allocate(1, oops::ObsVariables({dv.first}));
+      ydiags.save(*dv.second, dv.first, 0);
+    }
+  }
+
   oops::Log::trace() << "GOESCloudWaterPath::simulateObs done" << std::endl;
 }
 
@@ -366,7 +392,8 @@ void GOESCloudWaterPath::print(std::ostream & os) const {
      << ", pressureTop=" << pressureTop_
      << ", layerTk=" << computeLayerTk_
      << ", maxHofx=" << maximumHofx_
-     << ", reverseCol=" << reverseColumnOrder_;
+     << ", reverseCol=" << reverseColumnOrder_
+     << ", saturationCheck=" << (saturationCheckInOperator_ ? "operator" : "filter");
 }
 
 // -----------------------------------------------------------------------------

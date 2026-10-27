@@ -45,8 +45,22 @@ class GOESCloudWaterPathParameters : public ObsOperatorParametersBase {
  * Integration uses the trapezoidal rule over pressure layers:
  *   path = SUM{ q[k] * (P[k] - P[k+1]) } / gravity
  *
- *  - If layer-mean RH > 0.975 (near-saturation), hofx is set to missing.
+ *  - If layer-mean RH > 0.975 (near-saturation), hofx is set to missing
+ *    (`saturation check: operator`, the default).
  *  - If layer-mean T < 273 K and obs type is LWP, LWP is replaced by CWP.
+ *
+ * With `saturation check: filter` the operator never sets hofx to missing for
+ * saturation. The check is left to a filter on the diagnostics below; in the LETKF
+ * observer only the QC of the H(ensemble mean) run is kept, so the check is then
+ * decided on the ensemble-mean state instead of rejecting the obs whenever any one
+ * member is saturated.
+ *
+ * ObsDiagnostics (filled when a filter requests them, missing where hofx is missing
+ * before the checks):
+ *  - `cloud_layer_relative_humidity`: layer-mean RH (wrt water) between the
+ *    satellite cloud base and top, as used by the saturation check
+ *  - `cloud_layer_temperature`: layer-mean temperature (K) over the same layers, as
+ *    used by the LWP freezing check
  *
  * ### YAML example
  *
@@ -88,6 +102,10 @@ class GOESCloudWaterPathParameters : public ObsOperatorParametersBase {
   // Reverse GeoVaL column order from top-to-bottom to bottom-to-top
   // Set to true if GeoVaLs are ordered top-to-bottom (index 0 = TOA)
   oops::Parameter<bool> reverseColumnOrder{"reverse column order", true, this};
+
+  // Where the layer-mean RH check is applied: "operator" sets hofx to missing for a
+  // saturated column; "filter" leaves it to a filter on ObsDiag/cloud_layer_relative_humidity
+  oops::Parameter<std::string> saturationCheck{"saturation check", "operator", this};
 };
 
 // -----------------------------------------------------------------------------
@@ -117,6 +135,7 @@ class GOESCloudWaterPath : public ObsOperatorBase {
   bool computeLayerTk_;
   float maximumHofx_;
   bool reverseColumnOrder_;
+  bool saturationCheckInOperator_;
 
   oops::Variables requiredVars_;
 };
