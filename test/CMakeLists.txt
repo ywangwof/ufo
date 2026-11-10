@@ -15,27 +15,36 @@ include( ufo_functions )
 #  set (UFO_CRTM_TESTFILES_PATH "$ENV{UFO_CRTM_TESTFILES}")
 #elseif (crtm_FOUND)
 if (crtm_FOUND)
-  set (UFO_CRTM_TESTFILES_PATH "${CMAKE_SOURCE_DIR}/test-data-release/crtm/${crtm_data_tag}/${crtm_data_tag_postfix}")
+  get_property(UFO_CRTM_TESTFILES_PATH GLOBAL PROPERTY CRTM_TESTFILES_PATH)
+  message(STATUS "CRTM test data path from global property CRTM_TESTFILES_PATH: ${UFO_CRTM_TESTFILES_PATH}")
   if (EXISTS ${UFO_CRTM_TESTFILES_PATH})
-    message(STATUS "Skipping download of test data from ${crtm_data_download_url}/${crtm_data_tarball_name} since it already exists")
+    # The global property path exists, CRTM has already downloaded the coefficients
+    # and stored the path in a global property so use it and skip the download
+    message(STATUS "Skipping download of test data from ${crtm_data_download_url}/${crtm_data_tarball_name} since it already exists in ${UFO_CRTM_TESTFILES_PATH}")
   else()
-    message(STATUS "Download test data from ${crtm_data_download_url}/${crtm_data_tarball_name}")
-    include(FetchContent)
-    FetchContent_Declare(
-      crtm-testdata
-      DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/test-data-release
-      DOWNLOAD_NO_EXTRACT ON
-      URL      ${crtm_data_download_url}/${crtm_data_tarball_name}
-      URL_HASH MD5=${crtm_data_tarball_hash}
-    )
-    FetchContent_MakeAvailable(crtm-testdata)
-    if( crtm_VERSION VERSION_GREATER_EQUAL 3.0.0 )
-       # Tarballs path for versions 3.0.0 and higher
-       file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/test-data-release/${crtm_data_tarball_name} DESTINATION ${CMAKE_SOURCE_DIR}/test-data-release/crtm/)
-    else ()
-       # Tarballs for versions 2.4.0 and 2.4.1 already contain /crtm in the path
-       file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/test-data-release/${crtm_data_tarball_name} DESTINATION ${CMAKE_SOURCE_DIR}/test-data-release/)
-    endif ()
+    # Global Property did not set the path, so create a path to store the crtm coefficient
+    set (UFO_CRTM_TESTFILES_PATH "${CMAKE_SOURCE_DIR}/test-data-release/crtm/${crtm_data_tag}/${crtm_data_tag_postfix}")
+    if (EXISTS ${UFO_CRTM_TESTFILES_PATH})
+       message(STATUS "Skipping download of test data from ${crtm_data_download_url}/${crtm_data_tarball_name} since it already exists in ${UFO_CRTM_TESTFILES_PATH}")
+    else()
+       message(STATUS "Download test data from ${crtm_data_download_url}/${crtm_data_tarball_name} to  ${UFO_CRTM_TESTFILES_PATH}")
+       include(FetchContent)
+       FetchContent_Declare(
+          crtm-testdata
+          DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/test-data-release
+          DOWNLOAD_NO_EXTRACT ON
+          URL      ${crtm_data_download_url}/${crtm_data_tarball_name}
+          URL_HASH MD5=${crtm_data_tarball_hash}
+       )
+       FetchContent_MakeAvailable(crtm-testdata)
+       if( crtm_VERSION VERSION_GREATER_EQUAL 3.0.0 )
+          # Tarballs path for versions 3.0.0 and higher
+          file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/test-data-release/${crtm_data_tarball_name} DESTINATION ${CMAKE_SOURCE_DIR}/test-data-release/crtm/)
+       else ()
+          # Tarballs for versions 2.4.0 and 2.4.1 already contain /crtm in the path
+          file(ARCHIVE_EXTRACT INPUT ${CMAKE_SOURCE_DIR}/test-data-release/${crtm_data_tarball_name} DESTINATION ${CMAKE_SOURCE_DIR}/test-data-release/)
+       endif ()
+    endif()
   endif()
 endif()
 # Make UFO_CRTM_TESTFILES_PATH available at parent scope so that downstream repos have access to it
@@ -71,6 +80,7 @@ if (NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/Data/ufo/testinput_tier_1")
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Data/ufo)
   file(CREATE_LINK ${ufo_data_testinput_tier_1_local} ${CMAKE_CURRENT_BINARY_DIR}/Data/ufo/testinput_tier_1 SYMBOLIC)
 endif()
+
 # Make UFO_UFO_TESTFILES_PATH available at parent scope so that downstream repos have access to it
 set (UFO_UFO_TESTFILES_PATH ${ufo_data_testinput_tier_1_local} PARENT_SCOPE)
 
@@ -146,11 +156,13 @@ list( APPEND ufo_test_input
   testinput/ufo_geovals_set_invalid_default_format.yaml
   testinput/ufo_geovals_get_nonexistent_var.yaml
   testinput/variables.yaml
+  testinput/unit_tests/obslocalization/obs_localization.yaml
 )
 
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput/unit_tests)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/testinput/unit_tests/obslocalization)
 CREATE_SYMLINK( ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${ufo_test_input} )
 
 # Create Data directory for test output files
@@ -359,6 +371,14 @@ ecbuild_add_test( TARGET  ufo_sampled_locations
                           ufo/SampledLocations.h
                           ufo/sampled_locations_test.F90
                   ARGS    "testinput/locations.yaml"
+                  ENVIRONMENT OOPS_TRAPFPE=1
+                  LIBS    ufo )
+
+# Test obs-space localization computeLocalization(Point3, Point3) for Box car, GC99, SOAR
+ecbuild_add_test( TARGET  ufo_obs_localization
+                  SOURCES mains/TestObsLocalization.cc
+                          ufo/ObsLocalization.h
+                  ARGS    "testinput/unit_tests/obslocalization/obs_localization.yaml"
                   ENVIRONMENT OOPS_TRAPFPE=1
                   LIBS    ufo )
 
@@ -692,7 +712,7 @@ if( ${rttov_FOUND} )
     set(RTTOV_VERSION_SUFFIX "_rttov12")
     set(RTTOV_CAMEL_VERSION "2")
   endif()
-  
+
   list( APPEND rttov_coef_data
     rttov7pred54L/rtcoef_dmsp_17_ssmis.dat
     rttov7pred54L/rtcoef_gcom-w_1_amsr2.dat
@@ -722,7 +742,7 @@ if( ${rttov_FOUND} )
     pchsr_v9.3.${RTTOV_COEF_EXT}
     )
 
-    
+
   # Set RTTOV coefficient directory
   if(DEFINED ENV{RTTOV_LOCAL_COEF_DIR} AND EXISTS $ENV{RTTOV_LOCAL_COEF_DIR})
     set(RTTOV_COEF_DIR "$ENV{RTTOV_LOCAL_COEF_DIR}")
@@ -741,7 +761,7 @@ if( ${rttov_FOUND} )
     set(RTTOV_EMIS_ATLAS_DIR "${rttov_BASE_DIR}/etc/emis_data")
   endif()
   message(STATUS "RTTOV emissivity atlas directory: ${RTTOV_EMIS_ATLAS_DIR}")
-  
+
   # Handle mietable (v12) or hydrotable (v14)
   if(rttov_VERSION VERSION_GREATER_EQUAL 14.0)
     # RTTOV v14: use NetCDF hydrotable file directly
@@ -770,7 +790,7 @@ if( ${rttov_FOUND} )
       list(APPEND rttov_coef_data "mietable/mietable_metop_amsuamhs.bin")
     endif()
   endif()
-    
+
   # Symlink RTcoef files
   create_symlink_filename( ${RTTOV_COEF_DIR}
                            ${CMAKE_CURRENT_BINARY_DIR}/Data

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2019-2024 UCAR
+ * (C) Copyright 2019-2026 UCAR
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -18,8 +18,9 @@
 #include "ufo/filters/CopyFlagsFromExtendedToOriginalSpace.h"
 #include "ufo/filters/CreateDiagnosticFlags.h"
 #include "ufo/filters/DifferenceCheck.h"
+#include "ufo/filters/DuplicateThinning.h"
 #include "ufo/filters/EnsembleStatistics.h"
-#include "ufo/filters/FinalCheck.h"
+#include "ufo/filters/FindNearestNeighbors.h"
 #include "ufo/filters/Gaussian_Thinning.h"
 #include "ufo/filters/GeoVaLsWriter.h"
 #include "ufo/filters/gnssroonedvarcheck/GNSSROOneDVarCheck.h"
@@ -39,6 +40,7 @@
 #include "ufo/filters/ObsPolygonCheck.h"
 #include "ufo/filters/ObsRefractivityGradientCheck.h"
 #include "ufo/filters/ParameterSubstitution.h"
+#include "ufo/filters/Percentile.h"
 #include "ufo/filters/PerformAction.h"
 #include "ufo/filters/PoissonDiskThinning.h"
 #include "ufo/filters/PreQC.h"
@@ -50,10 +52,10 @@
 #include "ufo/filters/ProfileFewObsCheck.h"
 #include "ufo/filters/ProfileMaxDifferenceCheck.h"
 #include "ufo/filters/ProfileUnFlagObsCheck.h"
-#include "ufo/filters/QCmanager.h"
 #include "ufo/filters/refractivityonedvarcheck/RefractivityOneDVarCheck.h"
 #include "ufo/filters/SatName.h"
 #include "ufo/filters/SatwindInversionCorrection.h"
+#include "ufo/filters/SharedListCheck.h"
 #include "ufo/filters/SpikeAndStepCheck.h"
 #include "ufo/filters/StuckCheck.h"
 #include "ufo/filters/SuperOb.h"
@@ -111,10 +113,12 @@ void instantiateObsFilterFactory() {
            domainCheckMaker("Domain Check");
   static FilterMaker<ObsDomainErrCheck>
            domainErrCheckMaker("DomainErr Check");
+  static FilterMaker<DuplicateThinning>
+           duplicateThinningMaker("DuplicateThinning");
   static FilterMaker<ObsPolygonCheck>
            polygonCheckMaker("Polygon Check");
-  static FilterMaker<FinalCheck>
-           finalCheckMaker("Final Check");
+  static FilterMaker<FindNearestNeighbors>
+           findNearestNeighborsMaker("Find Nearest Neighbors");
   static FilterMaker<Gaussian_Thinning>
            gaussianThinningMaker("Gaussian Thinning");
   static FilterMaker<GNSSROOneDVarCheck>
@@ -139,6 +143,8 @@ void instantiateObsFilterFactory() {
            ObsRefractivityGradientCheckMaker("Obs Refractivity Gradient Check");
   static FilterMaker<ParameterSubstitution>
            parameterSubstitutionMaker("Parameter Substitution");
+  static FilterMaker<Percentile>
+           percentileMaker("Percentile");
   static FilterMaker<PerformAction>
            performActionMaker("Perform Action");
   static FilterMaker<PoissonDiskThinning>
@@ -167,12 +173,12 @@ void instantiateObsFilterFactory() {
            RefractivityOneDVarCheckMaker("Refractivity 1DVar Check");
   static FilterMaker<ROobserror>
            ROobserrorMaker("ROobserror");
-  static FilterMaker<QCmanager>
-           qcManagerMaker("QCmanager");
   static FilterMaker<SatName>
            satnameCheckMaker("satname");
   static FilterMaker<SatwindInversionCorrection>
              SatwindInversionCorrectionMaker("Satwind Inversion Correction");
+  static FilterMaker<SharedListCheck>
+             SharedListCheckMaker("SharedListCheck");
   static FilterMaker<TrackCheckShip>
            ShipTrackCheckMaker("Ship Track Check");
   static FilterMaker<SpikeAndStepCheck>

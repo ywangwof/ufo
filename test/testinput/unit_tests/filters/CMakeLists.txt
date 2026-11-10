@@ -36,6 +36,15 @@ ufo_add_test( NAME    ensemblestatistics
               LABELS  filters
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    ensemblestatistics_IGObsStdDev
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_EnsembleObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/ensemblestatistics_IGObsStdDev.yaml"
+              MPI     8
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    ensemblestatistics_channels
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_EnsembleObsFilters.x
@@ -59,6 +68,23 @@ ufo_add_test( NAME    filter_stage_mpi
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
               ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/filter_stage.yaml"
               MPI     2
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    find_nearest_neighbors
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/find_nearest_neighbors.yaml"
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    find_nearest_neighbors_mpi
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/find_nearest_neighbors.yaml"
+              MPI     3
               LIBS    ufo
               LABELS  filters
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
@@ -149,6 +175,15 @@ ufo_add_test( NAME    metar_qc_filters
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
               ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/metar_qc_filters.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    function_SharedListCheck
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/function_SharedListCheck.yaml"
               MPI     1
               LIBS    ufo
               LABELS  filters
@@ -302,6 +337,15 @@ ufo_add_test( NAME    qc_boundscheck
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
               ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_boundscheck.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    qc_boundscheck_layers
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_boundscheck_layers.yaml"
               MPI     1
               LIBS    ufo
               LABELS  filters
@@ -560,6 +604,23 @@ if( ${gsw_FOUND} )
                   LABELS  filters
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 endif( ${gsw_FOUND} )
+#
+ufo_add_test( NAME    qc_percentile
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_percentile.yaml"
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    qc_percentile_mpi
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_percentile.yaml"
+              MPI     4
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
 ufo_add_test( NAME    qc_poisson_disk_thinning
               ECBUILD
@@ -1014,7 +1075,7 @@ if( crtm_FOUND )
                   LIBS    ufo
                   LABELS  crtm filters
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../
-                  TEST_DEPENDS ufo_get_ufo_test_data ufo_get_crtm_test_data ) 
+                  TEST_DEPENDS ufo_get_ufo_test_data ufo_get_crtm_test_data )
 #
     ufo_add_test( NAME    tropics_qc_filters
                   ECBUILD
@@ -1071,13 +1132,31 @@ if( crtm_FOUND )
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
     ufo_add_test( NAME    qc_flags_true
-              	  ECBUILD
-              	  COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
-              	  ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/abi_g16_qc_flags.yaml"
-              	  MPI     1
-              	  LIBS    ufo
-              	  LABELS  filters
-		  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+                  ECBUILD
+                  COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+                  ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/abi_g16_qc_flags.yaml"
+                  MPI     1
+                  LIBS    ufo
+                  LABELS  filters
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+    ufo_add_test( NAME    qc_duplicate_thinning
+                  ECBUILD
+                  COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+                  ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_duplicate_thinning.yaml"
+                  MPI     1
+                  LIBS    ufo
+                  LABELS  crtm filters
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+    ufo_add_test( NAME    qc_duplicate_thinning_2PE
+                    ECBUILD
+                    COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+                    ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_duplicate_thinning.yaml"
+                    MPI     2
+                    LIBS    ufo
+                    LABELS  crtm filters
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 endif( crtm_FOUND )
 
 # Filters that require RTTOV in ObsOperator

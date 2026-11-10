@@ -27,7 +27,9 @@ static LinearObsOperatorMaker<ObsCategoricalTLAD> makerCategoricalTL_("Categoric
 
 ObsCategoricalTLAD::ObsCategoricalTLAD(const ioda::ObsSpace & odb,
                                        const Parameters_ & params)
-  : LinearObsOperatorBase(odb, VariableNameMap(params.AliasFile.value())), odb_(odb)
+  : LinearObsOperatorBase(odb, VariableNameMap(params.AliasFile.value(),
+                                               params.variableMaps.value())),
+    odb_(odb)
 {
   data_.configure(odb, params);
 
@@ -47,6 +49,10 @@ void ObsCategoricalTLAD::setTrajectory(const GeoVaLs & geovals,
                                        const QCFlags_t & qc_flags) {
   oops::Log::trace() << "ObsCategoricalTLAD::setTrajectory start" << std::endl;
 
+  if (odb_.nlocs() == 0) {
+    return;
+  }
+
   // Set trajectory for each operator.
   for (const auto& component : data_.components())
     component.second->setTrajectory(geovals, ydiags, qc_flags);
@@ -58,6 +64,10 @@ void ObsCategoricalTLAD::setTrajectory(const GeoVaLs & geovals,
 
 void ObsCategoricalTLAD::simulateObsTL(const GeoVaLs & geovals, ioda::ObsVector & ovec) const {
   oops::Log::trace() << "ObsCategoricalTLAD::simulateObsTL start" << std::endl;
+
+  if (odb_.nlocs() == 0) {
+    return;
+  }
 
   oops::Log::debug() << "Running TL operators" << std::endl;
 
@@ -81,6 +91,10 @@ void ObsCategoricalTLAD::simulateObsTL(const GeoVaLs & geovals, ioda::ObsVector 
 
 void ObsCategoricalTLAD::simulateObsAD(GeoVaLs & geovals, const ioda::ObsVector & ovec) const {
   oops::Log::trace() << "ObsCategoricalTLAD::simulateObsAD start" << std::endl;
+
+  if (odb_.nlocs() == 0) {
+    return;
+  }
 
   oops::Log::debug() << "Running AD operators" << std::endl;
 

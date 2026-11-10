@@ -29,10 +29,20 @@ ObsErrorDiagonalInvGamma::ObsErrorDiagonalInvGamma(const Parameters_ & params,
                                    const eckit::mpi::Comm &timeComm)
   : ObsErrorBase(timeComm),
     yobs_(obsgeom, "ObsValue"),
-    stddev_(obsgeom, "ObsError"),
+    stddev_(obsgeom),
     inverseVariance_(obsgeom),
     params_(params)
 {
+  // If IGObsError already created then need to save it to Obs Space as ObsError so that it can be
+  // used by downstream solvers. If IGObsError not yet created, then stddev is read from ObsError;
+  // this allows use of diagonal inverse gamma covariance model prior to creation of IGObsError.
+  if (obsgeom.has("IGObsError")) {
+    stddev_.read("IGObsError");
+    stddev_.save("ObsError");
+  } else {
+    oops::Log::trace() << "IGObsError not in Obs Space, using ObsError instead" << std::endl;
+    stddev_.read("ObsError");
+  }
   inverseVariance_ = stddev_;
   inverseVariance_ *= stddev_;
   inverseVariance_.invert();
@@ -94,7 +104,7 @@ void ObsErrorDiagonalInvGamma::localize(ioda::ObsVector & locvector) const {
 Eigen::MatrixXf ObsErrorDiagonalInvGamma::localInverseMultiply(const Eigen::MatrixXf & zz) const {
   Eigen::MatrixXf zzRinv(zz.rows(), zz.cols());
   for (int ii = 0; ii < zz.rows(); ++ii) {
-    zzRinv(ii, Eigen::all) = zz(ii, Eigen::all)
+    zzRinv(ii, Eigen::placeholders::all) = zz(ii, Eigen::placeholders::all)
                                  .cwiseProduct(local_inverseVariance_.cast<float>().transpose());
   }
   return zzRinv;

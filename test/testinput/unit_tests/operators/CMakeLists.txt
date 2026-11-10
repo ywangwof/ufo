@@ -141,6 +141,15 @@ ufo_add_test( NAME    linopr_categorical
               LABELS  operators tier2
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    opr_categorical_zero_obs
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/categorical_zero_obs.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    opr_chleuzintegr
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
@@ -626,6 +635,33 @@ ufo_add_test( NAME    opr_obsdiag_background_error_vert_interp_air_pressure
               LABELS  operators
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    opr_obsdiag_background_error_vert_interp_air_pressure_obsspace_scaling
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsDiagnostics.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/obsdiag_background_error_vert_interp_air_pressure_obsspace_scaling.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    opr_obsdiag_background_error_vert_interp_air_pressure_obsspace_missing_scaling
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsDiagnostics.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/obsdiag_background_error_vert_interp_air_pressure_obsspace_missing_scaling.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    opr_obsdiag_background_error_vert_interp_air_pressure_geovals_scaling
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsDiagnostics.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/obsdiag_background_error_vert_interp_air_pressure_geovals_scaling.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    opr_obsdiag_background_error_vert_interp_height
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsDiagnostics.x
@@ -936,6 +972,24 @@ ufo_add_test( NAME    linopr_radar_reflectivity_metoffice
               LABELS  operators
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    opr_ppro_nssl
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/ppro_nssl.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    opr_ppro_tcwa2
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/ppro_tcwa2.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    opr_sattcwv
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
@@ -1200,6 +1254,24 @@ ufo_add_test( NAME    linopr_vert_interp_pmissing
               LABELS  operators
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    opr_vert_interp_pmissing_scaled
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/vert_interp_pmissing_scaled.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    linopr_vert_interp_pmissing_scaled
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperatorTLAD.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/vert_interp_pmissing_scaled.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    opr_tropomi_co
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
@@ -1236,10 +1308,19 @@ ufo_add_test( NAME    opr_ionosonde
               LABELS  operators
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
-ufo_add_test( NAME    opr_pathsum
+ufo_add_test( NAME    opr_pathsum_vertical
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
-              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/pathsum.yaml"
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/pathsum_vertical.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
+ufo_add_test( NAME    opr_pathsum_slant
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperator.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/pathsum_slant.yaml"
               MPI     1
               LIBS    ufo
               LABELS  operators
@@ -1805,6 +1886,15 @@ if(ENABLE_RTTOVCPP_TESTS)
               LABELS  rttov ${RTTOV_VERSION_LABEL} rttovcpp operators
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 endif(ENABLE_RTTOVCPP_TESTS)
+#
+    ufo_add_test( NAME    linopr_atms_rttov_tlad_qc
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperatorTLAD.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/atms_rttov_tlad_qc${RTTOV_VERSION_SUFFIX}.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  rttov ${RTTOV_VERSION_LABEL}operators
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
     ufo_add_test( NAME    opr_atms_rttov_allsurfacetypes
               ECBUILD

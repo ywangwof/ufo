@@ -1,4 +1,4 @@
-# (C) Copyright 2017-2022 UCAR.
+# (C) Copyright 2017-2026 UCAR.
 #
 # This software is licensed under the terms of the Apache Licence Version 2.0
 # which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -40,6 +40,8 @@ endif()
 add_subdirectory( operators/product )
 add_subdirectory( operators/radardopplerwind )
 add_subdirectory( operators/radarradialvelocity )
+add_subdirectory( operators/radarshared)
+add_subdirectory( operators/radarpolarimetric)
 add_subdirectory( operators/radarreflectivity)
 if ( rttov_FOUND )
     if(DEFINED rttov_VERSION_MAJOR AND rttov_VERSION_MAJOR EQUAL 14)
@@ -106,6 +108,8 @@ list( APPEND ufo_src_files
     ObsOperatorBase.h
     ObsOperatorParametersBase.h
     ObsTraits.h
+    QCmanager.cc
+    QCmanager.h
     SampledLocations.cc
     SampledLocations.h
     sampled_locations_f.cc
@@ -143,6 +147,7 @@ list( APPEND ufo_src_files
     ${radardopplerwind_src_files}
     ${radarradialvelocity_src_files}
     ${goescloudwaterpath_src_files}
+    ${radarshared_src_files}
     ${radarreflectivity_src_files}
     ${profile_src_files}
     ${groundgnss_src_files}
@@ -163,6 +168,8 @@ list( APPEND ufo_src_files
     ${densityreduction_src_files}
     ${pathsum_src_files}
 )
+
+list( APPEND ufo_src_files ${radarpolarimetric_src_files} )
 
 ## Create Library target
 ecbuild_add_library( TARGET   ufo
@@ -197,7 +204,7 @@ if(geos-aero_FOUND)
 endif()
 
 if(gsw_FOUND)
-    target_link_libraries(ufo PUBLIC gsw)
+    target_link_libraries(ufo PUBLIC gsw ${gsw_LIBRARIES})
     target_compile_definitions(ufo PUBLIC GSW_FOUND)
 endif()
 
@@ -213,6 +220,7 @@ endif()
 if(oasim_FOUND)
     target_link_libraries(ufo PUBLIC oasim)
 endif()
+
 
 
 ## Include paths

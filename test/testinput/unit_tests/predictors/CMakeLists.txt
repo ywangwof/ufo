@@ -135,6 +135,15 @@ ufo_add_test( NAME    bias_linear_op
               LABELS  unit_tests predictors
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    bias_linear_op_tlad
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsOperatorTLAD.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/bias_linear_op_tlad.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  unit_tests predictors
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 # Test for application of bias prediction by record
 ufo_add_test( NAME    aircraft_bc
               ECBUILD
@@ -235,6 +244,14 @@ if( crtm_FOUND )
                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 endif( crtm_FOUND )
 #
+ufo_add_test( NAME    SymmCldImpact_predictor
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_Predictor.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/SymmCldImpact_predictor.yaml"
+              LIBS    ufo
+              LABELS  unit_tests predictors
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    thickness_predictor
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_Predictor.x
@@ -242,7 +259,7 @@ ufo_add_test( NAME    thickness_predictor
               LIBS    ufo
               LABELS  unit_tests predictors
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
-
+#
 ufo_add_test( NAME    read_bias_predictor
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_Predictor.x
@@ -250,7 +267,7 @@ ufo_add_test( NAME    read_bias_predictor
               LIBS    ufo
               LABELS  unit_tests predictors
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
-
+#
 ufo_add_test( NAME    obs_metadata_predictor
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_Predictor.x

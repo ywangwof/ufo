@@ -22,9 +22,9 @@ namespace ufo {
 // -----------------------------------------------------------------------------
 
 SatwindInversionCorrection::SatwindInversionCorrection(ioda::ObsSpace & obsdb,
-                               const Parameters_ & parameters,
-                               std::shared_ptr<ioda::ObsDataVector<int> > flags,
-                               std::shared_ptr<ioda::ObsDataVector<float> > obserr)
+                                                       const Parameters_ & parameters,
+                                                       ioda::ObsDataVector<int> & flags,
+                                                       ioda::ObsDataVector<float> & obserr)
   : FilterBase(obsdb, parameters, flags, obserr), parameters_(parameters)
 {
   oops::Log::trace() << "SatwindInversion constructor" << std::endl;
@@ -91,7 +91,7 @@ void SatwindInversionCorrection::applyFilter(const std::vector<bool> & apply,
   const size_t nlocs = obsdb_.nlocs();
 
 // Get parameters from options.
-  const float rh_threshold = parameters_.rh_threshold.value();
+  const float model_rh_threshold = parameters_.model_rh_threshold.value();
   const float min_pressure = parameters_.min_pressure.value();
   const float max_pressure = parameters_.max_pressure.value();
   const float inversion_temperature = parameters_.inversion_temperature.value();
@@ -183,7 +183,7 @@ void SatwindInversionCorrection::applyFilter(const std::vector<bool> & apply,
               model_vcoord_profile[ilev] < inversion_base &&
               firsttime) {
             //  Check humidity of inversion top
-            if (model_rh_profile[ilev] < rh_threshold) {
+            if (model_rh_profile[ilev] < model_rh_threshold) {
               temp_inversion_top = model_temp_profile[ilev];
               firsttime = false;
             } else {
@@ -211,15 +211,16 @@ void SatwindInversionCorrection::applyFilter(const std::vector<bool> & apply,
     }  // apply
   }  // location loop
   //  write back corrected pressure, updated flags and original pressure
-  obsdb_.put_db(parameters_.obs_pressure.value().group(),
-                parameters_.obs_pressure.value().variable(), obs_pressure);
+  const ufo::Variable obsPressureVar = parameters_.obs_pressure.value();
+  obsdb_.put_db(obsPressureVar.group(), obsPressureVar.variable(), obs_pressure,
+                obsPressureVar.dimList());
   obsdb_.put_db("DiagnosticFlags/InversionCorrectionPerformed", "windEastward",
                 diagFlagsUSatwindInversion);
   obsdb_.put_db("DiagnosticFlags/InversionCorrectionPerformed", "windNorthward",
                 diagFlagsVSatwindInversion);
-  obsdb_.put_db(parameters_.obs_pressure.value().group(),
-                parameters_.obs_pressure.value().variable() + std::string("_original"),
-                original_pressure);
+  obsdb_.put_db(obsPressureVar.group(),
+                obsPressureVar.variable() + std::string("_original"),
+                original_pressure, obsPressureVar.dimList());
 
   // sum number corrected and pressure differences
   const std::size_t count = countAccumulator->computeResult();

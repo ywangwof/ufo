@@ -1,11 +1,11 @@
 /*
- * (C) Copyright 2018-2019 UCAR
+ * (C) Copyright 2026 UCAR
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
  */
 
-#include "ufo/filters/QCmanager.h"
+#include "ufo/QCmanager.h"
 
 #include <numeric>
 #include <string>
@@ -23,10 +23,6 @@
 #include "ufo/filters/QCflags.h"
 
 namespace ufo {
-
-// Presets for QC filters could be performed in a function outside of any class.
-// We keep them as a filter for now. The main reason for this is to be able to use
-// the factory for models not in UFO/IODA.
 
 namespace {
 
@@ -46,37 +42,46 @@ void updateQCFlags(const std::vector<float> *obsValues, std::vector<int>& qcflag
 
 // -----------------------------------------------------------------------------
 
-QCmanager::QCmanager(ioda::ObsSpace & obsdb, const Parameters_ & /*parameters*/,
-                     std::shared_ptr<ioda::ObsDataVector<int> > qcflags,
-                     std::shared_ptr<ioda::ObsDataVector<float> > /*obserr*/)
-  : obsdb_(obsdb), nogeovals_(), nodiags_(), flags_(qcflags)
+QCmanager::QCmanager(ioda::ObsSpace & obsdb,
+                     ioda::ObsDataVector<int> & flags,
+                     ioda::ObsDataVector<float> & obserr)
+  : obsdb_(obsdb), flags_(flags), obserr_(obserr)
 {
-  oops::Log::trace() << "QCmanager constructor start" << std::endl;
+  oops::Log::trace() << "QCmanager constructor" << std::endl;
+}
 
-  ASSERT(qcflags);
+// -----------------------------------------------------------------------------
 
-  const oops::ObsVariables &allObservedVars = obsdb.obsvariables();
-  const oops::ObsVariables &initialObservedVars = obsdb.initial_obsvariables();
-  const oops::ObsVariables &derivedObservedVars = obsdb.derived_obsvariables();
+QCmanager::~QCmanager() {
+  oops::Log::trace() << "QCmanager destructor" << std::endl;
+}
+
+// -----------------------------------------------------------------------------
+
+void QCmanager::preSetQc() {
+  oops::Log::trace() << "QCmanager preSetQc start" << std::endl;
+  const oops::ObsVariables &allObservedVars = obsdb_.obsvariables();
+  const oops::ObsVariables &initialObservedVars = obsdb_.initial_obsvariables();
+  const oops::ObsVariables &derivedObservedVars = obsdb_.derived_obsvariables();
 
   ASSERT(allObservedVars.size() == initialObservedVars.size() + derivedObservedVars.size());
-  ASSERT(flags_->nvars() == allObservedVars.size());
-  ASSERT(flags_->nlocs() == obsdb_.nlocs());
+  ASSERT(flags_.nvars() == allObservedVars.size());
+  ASSERT(flags_.nlocs() == obsdb_.nlocs());
 
-  const ioda::ObsDataVector<float> obs(obsdb, initialObservedVars, "ObsValue");
+  const ioda::ObsDataVector<float> obs(obsdb_, initialObservedVars, "ObsValue");
 
   // Iterate over initial observed variables
   for (size_t jv = 0; jv < initialObservedVars.size(); ++jv) {
     const ioda::ObsDataRow<float> &currentObsValues = obs[jv];
-    ioda::ObsDataRow<int> &currentQCFlags = (*qcflags)[obs.varnames()[jv]];
+    ioda::ObsDataRow<int> &currentQCFlags = flags_[obs.varnames()[jv]];
     updateQCFlags(&currentObsValues, currentQCFlags);
   }
 
   // Iterate over derived variables and if they don't exist yet, set their QC flags to
   // 'missing'.
   for (size_t jv = 0; jv < derivedObservedVars.size(); ++jv) {
-    ioda::ObsDataRow<int> &currentQCFlags = (*qcflags)[derivedObservedVars[jv]];
-    if (!obsdb.has("ObsValue", derivedObservedVars[jv])) {
+    ioda::ObsDataRow<int> &currentQCFlags = flags_[derivedObservedVars[jv]];
+    if (!obsdb_.has("ObsValue", derivedObservedVars[jv])) {
       updateQCFlags(nullptr, currentQCFlags);
     } else {
       std::vector<float> currentObsValues(obsdb_.nlocs());
@@ -84,37 +89,64 @@ QCmanager::QCmanager(ioda::ObsSpace & obsdb, const Parameters_ & /*parameters*/,
       updateQCFlags(&currentObsValues, currentQCFlags);
     }
   }
-
-  oops::Log::trace() << "QCmanager constructor complete" << std::endl;
+  oops::Log::trace() << "QCmanager preSetQc complete" << std::endl;
 }
 
 // -----------------------------------------------------------------------------
 
-void QCmanager::postFilter(const GeoVaLs &, /*geovals*/
-                           const ioda::ObsVector & hofx,
-                           const ioda::ObsVector & /*bias*/,
-                           const ObsDiagnostics & /*diags*/) {
-  oops::Log::trace() << "QCmanager postFilter start" << std::endl;
+void QCmanager::postSetQc(const ioda::ObsVector & hofx) {
+  oops::Log::trace() << "QCmanager postSetQc start" << std::endl;
 
   const double missing = util::missingValue<double>();
   const oops::ObsVariables &allObservedVars = obsdb_.assimvariables();
 
-
   for (size_t jv = 0; jv < allObservedVars.size(); ++jv) {
     for (size_t jobs = 0; jobs < obsdb_.nlocs(); ++jobs) {
       const size_t iobs = allObservedVars.size() * jobs + jv;
-      if ((*flags_)[allObservedVars[jv]][jobs] == 0 && hofx[iobs] == missing) {
-        (*flags_)[allObservedVars[jv]][jobs] = QCflags::Hfailed;
+      if (flags_[allObservedVars[jv]][jobs] == 0 && hofx[iobs] == missing) {
+        flags_[allObservedVars[jv]][jobs] = QCflags::Hfailed;
       }
     }
   }
-  oops::Log::trace() << "QCmanager postFilter complete" << std::endl;
+  oops::Log::trace() << "QCmanager postSetQc complete" << std::endl;
 }
 
 // -----------------------------------------------------------------------------
 
-QCmanager::~QCmanager() {
-  oops::Log::trace() << "QCmanager destructor" << std::endl;
+void QCmanager::finalSetQc() {
+  oops::Log::trace() << "QCmanager finalSetQc start" << std::endl;
+
+  const oops::ObsVariables &derived = obsdb_.derived_obsvariables();
+  for (size_t jv = 0; jv < derived.size(); ++jv) {
+    if (!obsdb_.has("ObsValue", derived[jv]))
+      throw eckit::UnexpectedState(
+          "All filters have been run, but the derived simulated variable " + derived[jv] +
+          " can't be found either in the ObsValue or the DerivedObsValue group", Here());
+  }
+
+  // Set the QC flag to missing for any observations that haven't been rejected yet,
+  // but have missing error estimates.
+  const float missing = util::missingValue<float>();
+  for (size_t jv = 0; jv < obsdb_.obsvariables().size(); ++jv) {
+    for (size_t jobs = 0; jobs < obsdb_.nlocs(); ++jobs) {
+      if (flags_[jv][jobs] == QCflags::pass && obserr_[jv][jobs] == missing) {
+        flags_[jv][jobs] = QCflags::missing;
+      }
+    }
+  }
+
+  // Set the QC flag to observations that are processed but not to
+  // be assimilated.
+  for (size_t jv = 0; jv < obsdb_.obsvariables().size(); ++jv) {
+    if (!obsdb_.assimvariables().has(obsdb_.obsvariables()[jv])) {
+      for (size_t jobs = 0; jobs < obsdb_.nlocs(); ++jobs) {
+        flags_[jv][jobs] = QCflags::processed;
+      }
+    }
+  }
+
+  oops::Log::trace() << "QCmanager finalSetQc complete" << std::endl;
+  // Print QC statistics
   oops::Log::info() << *this;
 }
 
@@ -150,7 +182,8 @@ void QCmanager::print(std::ostream & os) const {
     {QCflags::history,       "removed by history check"},
     {QCflags::processed,     "rejected as processed but not assimilated"},
     {QCflags::superrefraction, "rejected by GNSSRO super refraction QC"},
-    {QCflags::superob,       "rejected by superobbing"}
+    {QCflags::superob,       "rejected by superobbing"},
+    {QCflags::percentile,    "rejected by percentile filter"}
   };
   const size_t numSpecialCases = 3;
 
@@ -165,9 +198,8 @@ void QCmanager::print(std::ostream & os) const {
     const std::string varName = allObservedVars[jvar];
     std::unique_ptr<ioda::Accumulator<std::vector<size_t>>> accumulator =
         obsdb_.distribution()->createAccumulator<size_t>(cases.size());
-
     for (size_t jobs = 0; jobs < nlocs; ++jobs) {
-      const int actualFlag = (*flags_)[jvar][jobs];
+      const int actualFlag = flags_[jvar][jobs];
       for (size_t jcase = 0; jcase < cases.size(); ++jcase)
         if (actualFlag == cases[jcase].first)
           accumulator->addTerm(jobs, jcase, 1);
@@ -226,7 +258,7 @@ void QCmanager::print(std::ostream & os) const {
     const std::vector<std::size_t> countDiags = accumulatorDiags->computeResult();
 
     if (obsdb_.comm().rank() == 0) {
-      const std::string info = "QC " + flags_->obstype() + " " + varName + ": ";
+      const std::string info = "QC " + flags_.obstype() + " " + varName + ": ";
 
       // Normal cases
       for (size_t i = numSpecialCases; i < counts.size(); ++i)

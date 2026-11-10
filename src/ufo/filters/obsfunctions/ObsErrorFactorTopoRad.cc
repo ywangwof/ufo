@@ -48,7 +48,7 @@ ObsErrorFactorTopoRad::ObsErrorFactorTopoRad(const eckit::LocalConfiguration & c
   splitInstSat(sensor, inst, sat);
   ASSERT(inst == "amsua" || inst == "atms"    || inst == "mhs" ||
          inst == "iasi" || inst == "cris-fsr" || inst == "airs" ||
-         inst == "avhrr3" || inst == "seviri");
+         inst == "avhrr3" || inst == "seviri" || inst == "abi");
 
   if (inst == "amsua" || inst == "atms") {
     // Get test groups from options
@@ -96,7 +96,7 @@ void ObsErrorFactorTopoRad::compute(const ObsFilterData & in,
 
   // Inflate obs error as a function of terrian height (>2000) and surface-to-space transmittance
   if (inst == "iasi" || inst == "cris-fsr" || inst == "airs" || inst == "avhrr3" ||
-      inst == "seviri") {
+      inst == "seviri" || inst == "abi") {
     std::vector<float> tao_sfc(nlocs);
     for (size_t ich = 0; ich < nchans; ++ich) {
       in.get(Variable("ObsDiag/transmittances_of_atmosphere_layer", channels_)[ich],
@@ -122,12 +122,10 @@ void ObsErrorFactorTopoRad::compute(const ObsFilterData & in,
     }
   } else if (inst == "amsua" || inst == "atms") {
     // Set channel numbers
-    int ich238, ich314, ich503, ich528, ich536, ich544, ich549, ich890;
+    int ich544 = 0, ich549 = 0, ich890 = 0;
     if (inst == "amsua") {
-      ich238 = 1, ich314 = 2, ich503 = 3, ich528 = 4, ich536 = 5;
       ich544 = 6, ich549 = 7, ich890 = 15;
     } else if (inst == "atms") {
-      ich238 = 1, ich314 = 2, ich503 = 3, ich528 = 5, ich536 = 6;
       ich544 = 7, ich549 = 8, ich890 = 16;
     }
 
@@ -163,7 +161,7 @@ void ObsErrorFactorTopoRad::compute(const ObsFilterData & in,
   } else {
     oops::Log::error() << "ObsErrorFactorTopoRad: Invalid instrument (sensor) specified: " << inst
                        << "  The valid instruments are: iasi, cris-fsr, airs, avhrr3, seviri, "
-                       << "  amsua, atms, and mhs."
+                       << "  amsua, atms, abi, and mhs."
                        << std::endl;
   }
   oops::Log::trace() << "ObsErrorFactorTopoRad compute complete" << std::endl;

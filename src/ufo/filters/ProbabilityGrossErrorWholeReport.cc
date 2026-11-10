@@ -23,8 +23,8 @@ namespace ufo {
 // -----------------------------------------------------------------------------
 ProbabilityGrossErrorWholeReport::ProbabilityGrossErrorWholeReport(ioda::ObsSpace & obsdb,
                                  const Parameters_ & parameters,
-                                 std::shared_ptr<ioda::ObsDataVector<int> > flags,
-                                 std::shared_ptr<ioda::ObsDataVector<float> > obserr)
+                                 ioda::ObsDataVector<int> & flags,
+                                 ioda::ObsDataVector<float> & obserr)
   : FilterBase(obsdb, parameters, flags, obserr),
     parameters_(parameters)
 {
@@ -202,9 +202,10 @@ void ProbabilityGrossErrorWholeReport::applyFilter(const std::vector<bool> & app
       }
     }
     // Save updated gross error probabilities and diagnostic flags to ObsSpace
-    obsdb_.put_db("GrossErrorProbability", varname[ivar], varPGE[ivar]);
+    obsdb_.put_db("GrossErrorProbability", varname[ivar], varPGE[ivar],
+                  filtervars.variable(ivar).dimList());
     obsdb_.put_db("DiagnosticFlags/BackgroundCheckRejection", varname[ivar],
-                  diagFlagsBackReject[ivar]);
+                  diagFlagsBackReject[ivar], filtervars.variable(ivar).dimList());
   }
   obsdb_.put_db("MetaData", "grossErrorProbabilityReport", ReportPGE);
   oops::Log::trace() << "ProbabilityGrossErrorWholeReport applyFilter complete" << std::endl;

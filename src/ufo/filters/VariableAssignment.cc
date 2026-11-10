@@ -324,7 +324,7 @@ void saveValues(const ufo::Variable &variable,
                 const ioda::ObsDataVector<VariableType> &values,
                 ioda::ObsSpace &obsdb) {
   for (size_t ich = 0; ich < variable.size(); ++ich)
-    obsdb.put_db(variable.group(), variable.variable(ich), values[ich]);
+    obsdb.put_db(variable.group(), variable.variable(ich), values[ich], variable.dimList());
 }
 
 /// Change the QC flag from `miss` to `pass` if the obs value is no longer missing or from `pass` to
@@ -452,8 +452,28 @@ ioda::ObsDtype getDataType(boost::optional<ioda::ObsDtype> dtypeParam,
                            const ufo::Variable &variable,
                            const ioda::ObsSpace &obsdb) {
   if (dtypeParam != boost::none) {
-    // If the dtype option has been set, return its value.
-    return *dtypeParam;
+    // If the dtype option has been set check it matches the
+    // current variable type and return its value.
+    ioda::ObsDtype parametersDType = dtypeParam.value_or(ioda::ObsDtype::Empty);
+    ioda::ObsDtype currentVariableDType = dtypeParam.value_or(ioda::ObsDtype::Empty);
+    std::string variableWithChannel;
+    for (size_t ich = 0; ich < variable.size(); ++ich) {
+      variableWithChannel = variable.variable(ich);
+      if (obsdb.has(variable.group(), variableWithChannel)) {
+        currentVariableDType = obsdb.dtype(variable.group(), variableWithChannel);
+        break;
+      }
+    }
+    if (currentVariableDType != ioda::ObsDtype::Empty &&
+        currentVariableDType != parametersDType) {
+      throw eckit::BadParameter("Variable Assignment getDataType for variable: "
+                                + variableWithChannel +
+                                ". The yaml specified type does not match the type "
+                                "of the variable in the ObsSpace. "
+                                "Either change the 'type' option to match the existing variable "
+                                "or write to a new variable that does not already exist.", Here());
+    }
+    return parametersDType;
   } else {
     // Otherwise, check if the variable to which new values should be assigned already
     // exists and if so, return its data type.
@@ -492,9 +512,9 @@ void AssignmentParameters::deserialize(util::CompositePath &path,
 
 
 VariableAssignment::VariableAssignment(ioda::ObsSpace & obsdb, const Parameters_ & parameters,
-                                       std::shared_ptr<ioda::ObsDataVector<int> > flags,
-                                       std::shared_ptr<ioda::ObsDataVector<float> > obserr)
-  : ObsProcessorBase(obsdb, parameters.deferToPost, std::move(flags), std::move(obserr)),
+                                       ioda::ObsDataVector<int> & flags,
+                                       ioda::ObsDataVector<float> & obserr)
+  : ObsProcessorBase(obsdb, parameters.deferToPost, flags, obserr),
     parameters_(parameters)
 {
   oops::Log::trace() << "VariableAssignment constructor" << std::endl;
@@ -521,7 +541,7 @@ void VariableAssignment::doFilter() {
   for (const AssignmentParameters &assignment : parameters_.assignments.value()) {
     const ufo::Variable variable = getVariable(assignment);
     const ioda::ObsDtype dtype = getDataType(assignment.type, variable, obsdb_);
-    assignToVariable(variable, dtype, assignment, apply, data_, obsdb_, *flags_);
+    assignToVariable(variable, dtype, assignment, apply, data_, obsdb_, flags_);
   }
 
   oops::Log::trace() << "VariableAssignment doFilter complete" << std::endl;
