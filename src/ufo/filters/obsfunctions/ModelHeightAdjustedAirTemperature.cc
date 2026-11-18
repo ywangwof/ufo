@@ -94,7 +94,11 @@ void ModelHeightAdjustedAirTemperature::compute(const ObsFilterData & in,
   std::vector<float> ModelHeight(nlocs);
   std::vector<float> StationHeight(nlocs);
 
-  in.get(parameters_.observedTemperature.value(), obsValue);
+  // Read the raw observation (skipDerived=true). Otherwise, once the result has been
+  // assigned to DerivedObsValue, a repeated call (e.g. once per ensemble member in the
+  // LETKF observer, or when re-reading the jdiag in getkf post) adjusts an already
+  // adjusted value and the correction compounds.
+  in.get(parameters_.observedTemperature.value(), obsValue, true);
   if (modelHeightFrom == "terrain") {
     in.get(Variable("GeoVaLs/height_above_mean_sea_level_at_surface"), ModelHeight);
   } else {
