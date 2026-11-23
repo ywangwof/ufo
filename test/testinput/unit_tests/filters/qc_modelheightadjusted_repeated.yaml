@@ -1,0 +1,143 @@
+# The ModelHeightAdjusted* functions write their result to DerivedObsValue, which is
+# returned in place of ObsValue on later reads. Each obs space below runs the same
+# assignment twice (as when filters are re-run for each ensemble member in an LETKF
+# observer) and checks that the result still matches the single-pass reference values.
+
+time window:
+  begin: 2021-05-21T00:00:00Z
+  end: 2021-05-21T23:00:00Z
+  bound to include: begin
+
+observations:
+- obs space:
+    name: Surface temperature, relative humidity and wind
+    obsdatain:
+      engine:
+        type: H5File
+        obsfile: Data/ufo/testinput_tier_1/surface_obs_20210521T1200Z.nc4
+    simulated variables: [airTemperatureAt2M, relativeHumidityAt2M,
+                          windEastwardAt10M, windNorthwardAt10M]
+  geovals:
+    filename: Data/ufo/testinput_tier_1/surface_geovals_20210521T1200Z.nc4
+  obs filters:
+  - &SurfaceAdjustments
+    filter: Variable Assignment
+    assignments:
+    - name: DerivedObsValue/airTemperatureAt2M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedAirTemperature
+        options:
+          elevation:
+            name: MetaData/stationElevation
+    - name: DerivedObsValue/relativeHumidityAt2M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedRelativeHumidity
+        options:
+          elevation:
+            name: MetaData/stationElevation
+          temperature:
+            name: TestReference/airTemperatureAt2M
+          observation relative humidity units: percentage
+    - name: DerivedObsValue/windEastwardAt10M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedEastwardWind
+        options:
+          elevation:
+            name: MetaData/stationElevation
+    - name: DerivedObsValue/windNorthwardAt10M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedNorthwardWind
+        options:
+          elevation:
+            name: MetaData/stationElevation
+  - *SurfaceAdjustments
+  compareVariables:
+  - test:
+      name: DerivedObsValue/airTemperatureAt2M
+    reference:
+      name: TestReference/airTemperatureAt2M
+    relTol: 1.0e-5
+  - test:
+      name: DerivedObsValue/relativeHumidityAt2M
+    reference:
+      name: TestReference/relativeHumidityAt2M
+    relTol: 1.0e-5
+  - test:
+      name: DerivedObsValue/windEastwardAt10M
+    reference:
+      name: TestReference/windEastwardAt10M
+    relTol: 1.0e-5
+  - test:
+      name: DerivedObsValue/windNorthwardAt10M
+    reference:
+      name: TestReference/windNorthwardAt10M
+    relTol: 1.0e-5
+
+# The adjusted temperature is stored in DerivedObsValue/airTemperatureAt2M (the default
+# "adjusted temperature variable"), so ObsValue/airTemperatureAt2M must also be read raw.
+- obs space:
+    name: Surface specific humidity
+    obsdatain:
+      engine:
+        type: H5File
+        obsfile: Data/ufo/testinput_tier_1/surface_obs_specifichumidity_20210521T1200Z.nc4
+    simulated variables: [specificHumidityAt2M]
+  geovals:
+    filename: Data/ufo/testinput_tier_1/surface_geovals_specifichumidity_20210521T1200Z.nc4
+  obs filters:
+  - filter: Variable Assignment
+    assignments:
+    - name: DerivedObsValue/airTemperatureAt2M
+      type: float
+      source variable:
+        name: ObsValue/adjustedAirTemperatureAt2M
+  - &SpecificHumidityAdjustment
+    filter: Variable Assignment
+    assignments:
+    - name: DerivedObsValue/specificHumidityAt2M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedSpecificHumidity
+  - *SpecificHumidityAdjustment
+  compareVariables:
+  - test:
+      name: DerivedObsValue/specificHumidityAt2M
+    reference:
+      name: TestReference/specificHumidityAt2M
+    relTol: 1.0e-5
+
+- obs space:
+    name: Marine wind
+    obsdatain:
+      engine:
+        type: H5File
+        obsfile: Data/ufo/testinput_tier_1/surface_marine_obs_20210521T1200Z.nc4
+    simulated variables: [windEastwardAt10M, windNorthwardAt10M]
+  obs filters:
+  - &MarineWindAdjustments
+    filter: Variable Assignment
+    assignments:
+    - name: DerivedObsValue/windEastwardAt10M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedEastwardMarineWind
+    - name: DerivedObsValue/windNorthwardAt10M
+      type: float
+      function:
+        name: ObsFunction/ModelHeightAdjustedNorthwardMarineWind
+  - *MarineWindAdjustments
+  compareVariables:
+  - test:
+      name: DerivedObsValue/windEastwardAt10M
+    reference:
+      name: TestReference/windEastwardAt10M
+    relTol: 1.0e-5
+  - test:
+      name: DerivedObsValue/windNorthwardAt10M
+    reference:
+      name: TestReference/windNorthwardAt10M
+    relTol: 1.0e-5

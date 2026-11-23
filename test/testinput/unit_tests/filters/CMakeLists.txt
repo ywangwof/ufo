@@ -872,6 +872,15 @@ ufo_add_test( NAME    qc_variableassignment
               LABELS  filters
               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
 #
+ufo_add_test( NAME    qc_modelheightadjusted_repeated
+              ECBUILD
+              COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x
+              ARGS    "${CMAKE_CURRENT_SOURCE_DIR}/qc_modelheightadjusted_repeated.yaml"
+              MPI     1
+              LIBS    ufo
+              LABELS  filters
+              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../../ )
+#
 ufo_add_test( NAME    satname
               ECBUILD
               COMMAND ${CMAKE_BINARY_DIR}/bin/test_ObsFilters.x

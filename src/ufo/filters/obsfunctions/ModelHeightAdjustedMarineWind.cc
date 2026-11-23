@@ -44,7 +44,8 @@ void ModelHeightAdjustedMarineWindComponent::compute(const ObsFilterData & in,
   std::vector<float> WindComponent(nlocs);
   std::vector<float> StationHeight(nlocs);
 
-  in.get(Variable(wind_), WindComponent);
+  // Read the raw observation (skipDerived=true)
+  in.get(Variable(wind_), WindComponent, true);
   in.get(Variable("MetaData/anemometerHeight"), StationHeight);
 
   const float missing = util::missingValue<float>();

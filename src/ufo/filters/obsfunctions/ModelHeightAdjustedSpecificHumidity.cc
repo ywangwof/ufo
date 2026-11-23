@@ -74,8 +74,9 @@ void ModelHeightAdjustedSpecificHumidity::compute(const ObsFilterData & in,
   std::vector<float> pStation(nlocs);
   std::vector<float> pModelSurface(nlocs);
 
-  in.get(parameters_.observedSpecificHumidity.value(), qObs);
-  in.get(parameters_.observedTemperature.value(), tObs);
+  // Read the raw observation (skipDerived=true)
+  in.get(parameters_.observedSpecificHumidity.value(), qObs, true);
+  in.get(parameters_.observedTemperature.value(), tObs, true);
   in.get(adjTempVar, tAdj);
   in.get(parameters_.stationPressure.value(), pStation);
   in.get(parameters_.modelSurfacePressure.value(), pModelSurface);
