@@ -48,6 +48,14 @@ class ModelHeightAdjustedSpecificHumidityParameters : public oops::Parameters {
   oops::Parameter<Variable> modelSurfacePressure{
       "model surface pressure variable",
       Variable("GeoVaLs/air_pressure_at_surface"), this};
+
+  /// If true (default), read the observed specific humidity and temperature from the ObsValue
+  /// group even if a DerivedObsValue counterpart exists. This keeps the result unchanged when the
+  /// filters are re-run on the same ObsSpace (e.g. the per-member nonlinear observers or the
+  /// posterior observer in the LETKF/GETKF), where the derived value already holds this
+  /// function's output. Set to false to use a DerivedObsValue produced by an earlier filter as
+  /// input.
+  oops::Parameter<bool> skipDerived{"skip derived", true, this};
 };
 
 /// \brief Adjusts specific humidity to preserve relative humidity when temperature is

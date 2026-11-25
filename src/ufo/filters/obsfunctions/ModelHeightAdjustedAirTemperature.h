@@ -86,6 +86,13 @@ class ModelHeightAdjustedAirTemperatureParameters : public oops::Parameters {
   /// Temperature lapse rate configuration (optional; defaults to constant 6.5 K/km)
   oops::OptionalParameter<TemperatureLapseRateParameters> lapseRate{
       "temperature lapse rate in K/km", this};
+
+  /// If true (default), read the observed temperature from the ObsValue group even if a
+  /// DerivedObsValue counterpart exists. This keeps the result unchanged when the filters are
+  /// re-run on the same ObsSpace (e.g. the per-member nonlinear observers or the posterior
+  /// observer in the LETKF/GETKF), where the derived value already holds this function's
+  /// output. Set to false to use a DerivedObsValue produced by an earlier filter as input.
+  oops::Parameter<bool> skipDerived{"skip derived", true, this};
 };
 
 /// \brief  Function to adjust a surface temperature observation value from station height

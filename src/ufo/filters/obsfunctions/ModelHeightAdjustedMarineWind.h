@@ -9,10 +9,25 @@
 #ifndef UFO_FILTERS_OBSFUNCTIONS_MODELHEIGHTADJUSTEDMARINEWIND_H_
 #define UFO_FILTERS_OBSFUNCTIONS_MODELHEIGHTADJUSTEDMARINEWIND_H_
 
+#include "oops/util/parameters/Parameter.h"
+#include "oops/util/parameters/Parameters.h"
 #include "ufo/filters/obsfunctions/ObsFunctionBase.h"
 #include "ufo/filters/Variables.h"
 
 namespace ufo {
+
+/// \brief Options controlling ModelHeightAdjustedMarineWindComponent.
+class ModelHeightAdjustedMarineWindParameters : public oops::Parameters {
+  OOPS_CONCRETE_PARAMETERS(ModelHeightAdjustedMarineWindParameters, Parameters)
+
+ public:
+  /// If true (default), read the observed wind component from the ObsValue group even if a
+  /// DerivedObsValue counterpart exists. This keeps the result unchanged when the filters are
+  /// re-run on the same ObsSpace (e.g. the per-member nonlinear observers or the posterior
+  /// observer in the LETKF/GETKF), where the derived value already holds this function's
+  /// output. Set to false to use a DerivedObsValue produced by an earlier filter as input.
+  oops::Parameter<bool> skipDerived{"skip derived", true, this};
+};
 
 /// \brief  Function to calculate surface marine wind value adjusted from
 /// anemometer height to reference height of 10m. Outputs a derived eastward
@@ -35,6 +50,7 @@ class ModelHeightAdjustedMarineWindComponent : public ObsFunctionBase<float> {
  private:
     ufo::Variables invars_;
     ufo::Variable wind_;
+    ModelHeightAdjustedMarineWindParameters parameters_;
 };
 
 class ModelHeightAdjustedEastwardMarineWind : public ModelHeightAdjustedMarineWindComponent {

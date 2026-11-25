@@ -13,6 +13,7 @@
 #include "ufo/filters/Variables.h"
 #include "ufo/variabletransforms/Cal_Humidity.h"
 
+#include "oops/util/parameters/Parameter.h"
 #include "oops/util/parameters/Parameters.h"
 #include "oops/util/parameters/RequiredParameter.h"
 #include "ufo/utils/parameters/ParameterTraitsVariable.h"
@@ -32,6 +33,13 @@ class ModelHeightAdjustedRelativeHumidityParameters : public oops::Parameters {
   oops::RequiredParameter<RelativeHumidityUnits> observation_relative_humidity_units{
     "observation relative humidity units",
     "Units of observation relative humidity (percentage or fraction).", this};
+
+  /// If true (default), read the observed relative humidity from the ObsValue group even if a
+  /// DerivedObsValue counterpart exists. This keeps the result unchanged when the filters are
+  /// re-run on the same ObsSpace (e.g. the per-member nonlinear observers or the posterior
+  /// observer in the LETKF/GETKF), where the derived value already holds this function's
+  /// output. Set to false to use a DerivedObsValue produced by an earlier filter as input.
+  oops::Parameter<bool> skipDerived{"skip derived", true, this};
 };
 
 /// \brief  Function to calculate surface relative humidity observation value adjusted from

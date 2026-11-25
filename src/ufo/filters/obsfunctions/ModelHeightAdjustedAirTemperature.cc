@@ -94,8 +94,7 @@ void ModelHeightAdjustedAirTemperature::compute(const ObsFilterData & in,
   std::vector<float> ModelHeight(nlocs);
   std::vector<float> StationHeight(nlocs);
 
-  // Read the raw observation (skipDerived=true)
-  in.get(parameters_.observedTemperature.value(), obsValue, true);
+  in.get(parameters_.observedTemperature.value(), obsValue, parameters_.skipDerived.value());
   if (modelHeightFrom == "terrain") {
     in.get(Variable("GeoVaLs/height_above_mean_sea_level_at_surface"), ModelHeight);
   } else {

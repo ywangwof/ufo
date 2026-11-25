@@ -15,6 +15,7 @@
 #include "ufo/filters/obsfunctions/ObsFunctionBase.h"
 #include "ufo/filters/Variables.h"
 
+#include "oops/util/parameters/Parameter.h"
 #include "oops/util/parameters/Parameters.h"
 #include "oops/util/parameters/RequiredParameter.h"
 #include "ufo/utils/parameters/ParameterTraitsVariable.h"
@@ -28,6 +29,13 @@ class ModelHeightAdjustedWindVectorParameters : public oops::Parameters {
  public:
   /// Input observation station height to be used
   oops::RequiredParameter<Variable> elevation{"elevation", this};
+
+  /// If true (default), read the observed wind component from the ObsValue group even if a
+  /// DerivedObsValue counterpart exists. This keeps the result unchanged when the filters are
+  /// re-run on the same ObsSpace (e.g. the per-member nonlinear observers or the posterior
+  /// observer in the LETKF/GETKF), where the derived value already holds this function's
+  /// output. Set to false to use a DerivedObsValue produced by an earlier filter as input.
+  oops::Parameter<bool> skipDerived{"skip derived", true, this};
 };
 
 /// \brief Function to calculate surface wind observation values adjusted from

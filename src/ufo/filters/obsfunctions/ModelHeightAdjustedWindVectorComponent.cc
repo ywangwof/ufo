@@ -58,11 +58,11 @@ void ModelHeightAdjustedWindVectorComponent<northwardWind>::compute(const ObsFil
   std::vector<float> ModelHeight(nlocs);
   std::vector<float> StationHeight(nlocs);
 
-  // Read the raw observation (skipDerived=true)
+  const bool skipDerived = parameters_.skipDerived.value();
   if (northwardWind) {
-    in.get(Variable("ObsValue/windNorthwardAt10M"), WindComponent, true);
+    in.get(Variable("ObsValue/windNorthwardAt10M"), WindComponent, skipDerived);
   } else {
-    in.get(Variable("ObsValue/windEastwardAt10M"), WindComponent, true);
+    in.get(Variable("ObsValue/windEastwardAt10M"), WindComponent, skipDerived);
   }
   in.get(Variable("GeoVaLs/height_above_mean_sea_level_at_surface"), ModelHeight);
   in.get(parameters_.elevation.value(), StationHeight);

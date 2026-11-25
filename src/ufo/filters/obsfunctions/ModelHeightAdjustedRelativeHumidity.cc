@@ -53,8 +53,7 @@ void ModelHeightAdjustedRelativeHumidity::compute(const ObsFilterData & in,
   std::vector<float> ModelHeight(nlocs);
   std::vector<float> StationHeight(nlocs);
 
-  // Read the raw observation (skipDerived=true)
-  in.get(Variable("ObsValue/relativeHumidityAt2M"), rh, true);
+  in.get(Variable("ObsValue/relativeHumidityAt2M"), rh, parameters_.skipDerived.value());
   in.get(parameters_.temperature.value(), T);
   in.get(Variable("GeoVaLs/height_above_mean_sea_level_at_surface"), ModelHeight);
   in.get(parameters_.elevation.value(), StationHeight);

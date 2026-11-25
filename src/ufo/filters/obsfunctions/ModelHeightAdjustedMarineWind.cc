@@ -29,6 +29,7 @@ ModelHeightAdjustedMarineWindComponent::ModelHeightAdjustedMarineWindComponent(
         const eckit::LocalConfiguration & conf, const Variable &windComponent)
         : invars_(), wind_(windComponent) {
   oops::Log::trace() << "ModelHeightAdjustedMarineWindComponent constructor" << std::endl;
+  parameters_.validateAndDeserialize(conf);
   // Required observation station height
   invars_ += Variable("MetaData/anemometerHeight");
   // Required wind component
@@ -44,8 +45,7 @@ void ModelHeightAdjustedMarineWindComponent::compute(const ObsFilterData & in,
   std::vector<float> WindComponent(nlocs);
   std::vector<float> StationHeight(nlocs);
 
-  // Read the raw observation (skipDerived=true)
-  in.get(Variable(wind_), WindComponent, true);
+  in.get(Variable(wind_), WindComponent, parameters_.skipDerived.value());
   in.get(Variable("MetaData/anemometerHeight"), StationHeight);
 
   const float missing = util::missingValue<float>();
